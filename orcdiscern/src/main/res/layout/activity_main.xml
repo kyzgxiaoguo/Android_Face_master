@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".MainActivity"
+    android:padding="10dp">
+
+    <Button
+        android:id="@+id/bt_classification"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="身份证分类"/>
+    <Button
+        android:id="@+id/bt_recognize_bank_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="银行卡"/>
+    <Button
+        android:id="@+id/bt_recognize_passport"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="护照"/>
+    <Button
+        android:id="@+id/bt_recognize_biz_license"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="营业执照"/>
+    <Button
+        android:id="@+id/bt_recognize_taiwan_compatriot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="港澳台居民来往内地通行证"/>
+    <Button
+        android:id="@+id/bt_recognize_hk_macao_tai_passport"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="港澳台通行证"/>
+
+</LinearLayout>
