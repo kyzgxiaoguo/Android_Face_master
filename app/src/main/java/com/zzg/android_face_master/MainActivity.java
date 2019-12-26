@@ -3,10 +3,10 @@ package com.zzg.android_face_master;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Camera;
+import android.graphics.Bitmap;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
@@ -19,8 +19,10 @@ import com.hg.orcdiscern.presenter.PictureConfigs;
 import com.hg.orcdiscern.presenter.PictureSelectors;
 import com.hg.orcdiscern.util.ImageUtils;
 import com.hg.orcdiscern.view.MainView;
-import com.luck.picture.lib.PictureSelector;
 import com.zzg.android_face_master.base.BaseActivity;
+import com.zzg.android_face_master.util.SurfaceHolderUtil;
+import com.zzg.android_face_master.model.FaceCallback;
+import com.zzg.android_face_master.model.FaceModel;
 
 import java.util.List;
 
@@ -39,7 +41,10 @@ public class MainActivity extends BaseActivity {
     private Context mContext;
     private MainView mainView;
 
-    private SurfaceHolder mSurfaceHolder;
+
+    private SurfaceHolderUtil mSurfaceHolders;
+    private boolean isFrontOrArount=false;
+    private FaceModel faceModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,63 +59,58 @@ public class MainActivity extends BaseActivity {
     private void initView() {
         mContext = MainActivity.this;
         mainView = MainView.getInstance(MainActivity.this, MainActivity.this);
-        //设置缓冲类型
-        mSurfaceView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-        //设置SurfaceView的分辨率
-        mSurfaceView.getHolder().setFixedSize(1920, 1080);
-        //设置屏幕长亮
-        mSurfaceView.getHolder().setKeepScreenOn(true);
-        mSurfaceView.getHolder().addCallback(new SurfaceCallback());
-
+        mSurfaceHolders = new SurfaceHolderUtil();
+        mSurfaceHolders.setSurfaceHolders(mContext, mSurfaceView, Camera.CameraInfo.CAMERA_FACING_FRONT);
+        faceModel=new FaceModel();
     }
 
     private void initData() {
+        faceModel.setFaceTaskCallback(new FaceCallback() {
+            @Override
+            public void success(Bitmap bitmap) {
+                Log.d("执行success0",bitmap.toString());
+            }
 
+            @Override
+            public void error(String err) {
+                Log.d("执行error0",err.toString());
+            }
+        });
     }
 
     private void listener() {
         btSetFace.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mainView.openPopupWindowDialog(v);
+                if (!checkCameraHardware(mContext)) {
+                    Toast.makeText(mContext, ",抱歉此设备暂不支持摄像功能。", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+        });
+        btGetFace.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!checkCameraHardware(mContext)) {
+                    Toast.makeText(mContext, ",抱歉此设备暂不支持摄像功能。", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
             }
         });
     }
-    class SurfaceCallback implements SurfaceHolder.Callback {
-
-        @Override
-        public void surfaceCreated(SurfaceHolder holder) {
-            Log.d("执行","surfaceCreated");
-        }
-
-        @Override
-        public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            if (holder != null) {
-
-            }
-            Log.d("执行","surfaceChanged");
-        }
-
-        @Override
-        public void surfaceDestroyed(SurfaceHolder holder) {
-            Log.d("执行","surfaceDestroyed");
-        }
-    }
-
     /**
      * 检测摄像头
      */
-    private boolean checkCameraHardware(Context context){
-        if (mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)){
+    private boolean checkCameraHardware(Context context) {
+        if (mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             Toast.makeText(context, "检测到设备支持摄像头", Toast.LENGTH_SHORT).show();
             return true;
-        }else {
+        } else {
             Toast.makeText(context, "检测到设备不支持摄像头", Toast.LENGTH_SHORT).show();
             return false;
         }
     }
-
-
 
 
     /**

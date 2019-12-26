@@ -8,6 +8,10 @@ import android.hardware.Camera;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import com.zzg.android_face_master.MainActivity;
+import com.zzg.android_face_master.model.FaceModel;
+import com.zzg.android_face_master.model.FaceCallback;
+
 import java.io.ByteArrayOutputStream;
 
 /**
@@ -20,13 +24,15 @@ public class FaceTask extends AsyncTask {
     private byte[] mData;
     Camera mCamera;
     private static final String TAG = "CameraTag";
+    private FaceModel model;
     //构造函数
-    FaceTask(byte[] data , Camera camera)
-    {
+    public FaceTask(byte[] data, Camera camera) {
         this.mData = data;
         this.mCamera = camera;
-
+        this.model=new FaceModel();
     }
+
+
     @Override
     protected Object doInBackground(Object[] params) {
         Camera.Parameters parameters = mCamera.getParameters();
@@ -41,7 +47,7 @@ public class FaceTask extends AsyncTask {
             yuvImg.compressToJpeg(rect, 100, outputstream);
             Bitmap rawbitmap = BitmapFactory.decodeByteArray(outputstream.toByteArray(), 0, outputstream.size());
             Log.i(TAG, "onPreviewFrame: rawbitmap:" + rawbitmap.toString());
-
+            model.success(rawbitmap);
             //若要存储可以用下列代码，格式为jpg
             /* BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(Environment.getExternalStorageDirectory().getPath()+"/fp.jpg"));
             img.compressToJpeg(rect, 100, bos);
@@ -50,8 +56,8 @@ public class FaceTask extends AsyncTask {
             mCamera.startPreview();
             */
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
+            model.error(e.getLocalizedMessage());
             Log.e(TAG, "onPreviewFrame: 获取相机实时数据失败" + e.getLocalizedMessage());
         }
         return null;
