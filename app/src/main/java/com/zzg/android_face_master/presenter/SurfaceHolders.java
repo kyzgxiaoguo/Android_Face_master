@@ -4,6 +4,7 @@ import android.content.Context;
 import android.view.SurfaceView;
 
 import com.zzg.android_face_master.view.MainViewCallback;
+import com.zzg.android_face_master.view.MainViews;
 
 /**
  * @author Zhangzhenguo
@@ -17,8 +18,6 @@ public class SurfaceHolders {
      SurfaceView mSurfaceView;
      SurfaceViewCallback mCallback = new SurfaceViewCallback();
      private int isFrontOrArount=-1;
-
-     private MainViewCallback mainViewCallback;
     /**
      * 设置相机界面SurfaceView的Holder
      * @param context 从相机所在的Activity传入的context

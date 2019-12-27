@@ -23,7 +23,7 @@ import com.zzg.android_face_master.view.MainViews;
  * 注意，调用它通常是在主线程中，它们需要与绘制线程也接触到任何状态正确同步。
  */
 
-public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.PreviewCallback {
+public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.PreviewCallback{
      private Context context;
      private static final String TAG = "SYRFACECamera";
      private CameraUtil mFrontCamera = new CameraUtil();

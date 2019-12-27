@@ -153,13 +153,17 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
 
     }
 
+    /**
+     * 返回函数
+     * @param bitmap
+     */
     @Override
     public void success(Bitmap bitmap) {
-        Log.d("执行Mainsuccess0", bitmap.toString());
+
     }
 
     @Override
     public void error(String err) {
-        Log.d("执行Mainerror0", err.toString());
+
     }
 }

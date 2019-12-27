@@ -8,6 +8,15 @@ import android.graphics.Bitmap;
  * @Email 18311371235@163.com
  * @Describe
  */
-public class MainViews{
+public class MainViews implements MainViewCallback{
 
+    @Override
+    public void success(Bitmap bitmap, MainViewCallback viewCallback) {
+
+    }
+
+    @Override
+    public void error(String err) {
+
+    }
 }
