@@ -20,16 +20,17 @@ import com.hg.orcdiscern.presenter.PictureSelectors;
 import com.hg.orcdiscern.util.ImageUtils;
 import com.hg.orcdiscern.view.MainView;
 import com.zzg.android_face_master.base.BaseActivity;
-import com.zzg.android_face_master.util.SurfaceHolderUtil;
-import com.zzg.android_face_master.model.FaceCallback;
 import com.zzg.android_face_master.model.FaceModel;
+import com.zzg.android_face_master.presenter.SurfaceHolders;
+import com.zzg.android_face_master.view.MainViewCallback;
+import com.zzg.android_face_master.view.MainViews;
 
 import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
-public class MainActivity extends BaseActivity {
+public class MainActivity extends BaseActivity implements MainViewCallback {
 
     @BindView(R.id.btSetFace)
     Button btSetFace;
@@ -37,14 +38,17 @@ public class MainActivity extends BaseActivity {
     Button btGetFace;
     @BindView(R.id.mSurFaceView)
     SurfaceView mSurfaceView;
+    @BindView(R.id.mSurFaceView1)
+    SurfaceView mSurFaceView1;
 
     private Context mContext;
     private MainView mainView;
 
 
-    private SurfaceHolderUtil mSurfaceHolders;
-    private boolean isFrontOrArount=false;
+    private SurfaceHolders mSurfaceHolders;
+    private boolean isFrontOrArount = false;
     private FaceModel faceModel;
+    private MainViews mainViews;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,23 +63,13 @@ public class MainActivity extends BaseActivity {
     private void initView() {
         mContext = MainActivity.this;
         mainView = MainView.getInstance(MainActivity.this, MainActivity.this);
-        mSurfaceHolders = new SurfaceHolderUtil();
-        mSurfaceHolders.setSurfaceHolders(mContext, mSurfaceView, Camera.CameraInfo.CAMERA_FACING_FRONT);
-        faceModel=new FaceModel();
+        mSurfaceHolders = new SurfaceHolders();
+        mSurfaceHolders.setSurfaceHolders(mContext, mSurfaceView, Camera.CameraInfo.CAMERA_FACING_FRONT,this);
+        mainViews=new MainViews();
     }
 
     private void initData() {
-        faceModel.setFaceTaskCallback(new FaceCallback() {
-            @Override
-            public void success(Bitmap bitmap) {
-                Log.d("执行success0",bitmap.toString());
-            }
 
-            @Override
-            public void error(String err) {
-                Log.d("执行error0",err.toString());
-            }
-        });
     }
 
     private void listener() {
@@ -99,6 +93,7 @@ public class MainActivity extends BaseActivity {
             }
         });
     }
+
     /**
      * 检测摄像头
      */
@@ -156,5 +151,15 @@ public class MainActivity extends BaseActivity {
      */
     private void reqEntrance(byte[] file) {
 
+    }
+
+    @Override
+    public void success(Bitmap bitmap) {
+        Log.d("执行Mainsuccess0", bitmap.toString());
+    }
+
+    @Override
+    public void error(String err) {
+        Log.d("执行Mainerror0", err.toString());
     }
 }

@@ -1,4 +1,4 @@
-package com.zzg.android_face_master.thread;
+package com.zzg.android_face_master.model;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -6,11 +6,10 @@ import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.util.Log;
 
-import com.zzg.android_face_master.MainActivity;
-import com.zzg.android_face_master.model.FaceModel;
-import com.zzg.android_face_master.model.FaceCallback;
+import com.zzg.android_face_master.view.MainViewCallback;
 
 import java.io.ByteArrayOutputStream;
 
@@ -25,11 +24,14 @@ public class FaceTask extends AsyncTask {
     Camera mCamera;
     private static final String TAG = "CameraTag";
     private FaceModel model;
+    private Handler handler;
+    private FaceModelCallback faceCallback;
+    private MainViewCallback mainViewCallback;
     //构造函数
-    public FaceTask(byte[] data, Camera camera) {
+    public FaceTask(byte[] data, Camera camera, MainViewCallback mainViewCallback) {
         this.mData = data;
         this.mCamera = camera;
-        this.model=new FaceModel();
+        this.model=new FaceModel(mainViewCallback);
     }
 
 

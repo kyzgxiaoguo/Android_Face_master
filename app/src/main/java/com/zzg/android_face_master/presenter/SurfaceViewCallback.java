@@ -1,4 +1,4 @@
-package com.zzg.android_face_master.holder;
+package com.zzg.android_face_master.presenter;
 
 import android.app.Activity;
 import android.content.Context;
@@ -7,15 +7,18 @@ import android.hardware.Camera;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
-import com.zzg.android_face_master.thread.FaceTask;
+import com.zzg.android_face_master.model.FaceModel;
+import com.zzg.android_face_master.model.FaceTask;
 import com.zzg.android_face_master.util.CameraUtil;
+import com.zzg.android_face_master.view.MainViewCallback;
+import com.zzg.android_face_master.view.MainViews;
 
 /**
  * @author Zhangzhenguo
  * @create 2019/12/25
  * @Email 18311371235@163.com
  * @Describe
- * SurfaceHolder.Callback可以访问底层表面，其次是一个辅助线程，
+ * SurfaceHolders.Callback可以访问底层表面，其次是一个辅助线程，
  * 提供了三个方法，正在创建，正在运行，正在销毁。使用它将画面绘制到屏幕表面。
  * 注意，调用它通常是在主线程中，它们需要与绘制线程也接触到任何状态正确同步。
  */
@@ -29,10 +32,15 @@ public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.Previ
      private FaceTask mFaceTask;
      private Camera.Parameters parameters;
      private int isFrontOrArount;
+     private FaceModel model;
+    private MainViews mainViews;
+    private MainViewCallback mainViewCallback;
 
-    public void setContext(Context context,int isFrontOrArount) {
+    public void setContext(Context context, int isFrontOrArount, MainViewCallback mainViewCallback) {
         this.context = context;
         this.isFrontOrArount = isFrontOrArount;
+        this.mainViewCallback = mainViewCallback;
+        model=new FaceModel(mainViewCallback);
     }
 
     /**
@@ -97,6 +105,7 @@ public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.Previ
         if (mFaceTask != null) {
             switch (mFaceTask.getStatus()) {
                 case RUNNING:
+
                     return;
                 case PENDING:
                     mFaceTask.cancel(false);
@@ -104,9 +113,8 @@ public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.Previ
             }
 
         }
-        mFaceTask = new FaceTask(data, camera);
+        mFaceTask = new FaceTask(data, camera,mainViewCallback);
         mFaceTask.execute((Void) null);
-
         //Log.i(TAG, "onPreviewFrame: 启动了Task");
     }
 

@@ -4,14 +4,12 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.hardware.Camera;
 import android.media.FaceDetector;
 import android.util.Log;
 import android.view.Surface;
-import android.view.View;
 
 /**
  * 相机类，相机的调用

@@ -8,7 +8,7 @@ import android.graphics.Bitmap;
  * @Email 18311371235@163.com
  * @Describe
  */
-public interface FaceCallback {
+public interface FaceModelCallback {
     void success(Bitmap bitmap);
     void error(String err);
 }

@@ -1,12 +1,9 @@
-package com.zzg.android_face_master.util;
+package com.zzg.android_face_master.presenter;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
-import android.hardware.Camera;
-import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-import com.zzg.android_face_master.holder.SurfaceViewCallback;
+import com.zzg.android_face_master.view.MainViewCallback;
 
 /**
  * @author Zhangzhenguo
@@ -14,22 +11,23 @@ import com.zzg.android_face_master.holder.SurfaceViewCallback;
  * @Email 18311371235@163.com
  * @Describe
  */
-public class SurfaceHolderUtil {
+public class SurfaceHolders {
      Context mContext;
-     SurfaceHolder mSurfaceHolder;
+     android.view.SurfaceHolder mSurfaceHolder;
      SurfaceView mSurfaceView;
      SurfaceViewCallback mCallback = new SurfaceViewCallback();
      private int isFrontOrArount=-1;
 
+     private MainViewCallback mainViewCallback;
     /**
      * 设置相机界面SurfaceView的Holder
      * @param context 从相机所在的Activity传入的context
      * @param surfaceView Holder所绑定的响应的SurfaceView
      * */
-    public void setSurfaceHolders(Context context, SurfaceView surfaceView,int isFrontOrArount) {
+    public void setSurfaceHolders(Context context, SurfaceView surfaceView, int isFrontOrArount, MainViewCallback mainViewCallback) {
         this.mContext = context;
         this.mSurfaceView = surfaceView;
-        mCallback.setContext(context,isFrontOrArount);
+        mCallback.setContext(context,isFrontOrArount,mainViewCallback);
         //实例化SurfaceHolder对象
         mSurfaceHolder = surfaceView.getHolder();
         //设置SurfaceView分辨率
