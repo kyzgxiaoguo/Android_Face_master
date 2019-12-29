@@ -1,6 +1,7 @@
 package com.zzg.android_face_master.model;
 
 import android.graphics.Bitmap;
+import android.media.FaceDetector;
 import android.util.Log;
 
 import com.zzg.android_face_master.view.MainViewCallback;
@@ -19,10 +20,11 @@ public class FaceModel implements FaceModelCallback {
         this.mainViewCallback=mainViewCallback;
     }
 
+
     @Override
-    public void success(Bitmap bitmap) {
+    public void success(Bitmap bitmap1,Bitmap bitmap, FaceDetector.Face[] faces,int realFaceNum) {
         Log.d("执行","Model");
-        mainViewCallback.success(bitmap);
+        mainViewCallback.success(bitmap1,bitmap,faces,realFaceNum);
     }
 
     @Override

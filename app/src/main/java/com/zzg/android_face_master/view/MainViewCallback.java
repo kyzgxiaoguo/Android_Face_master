@@ -1,6 +1,7 @@
 package com.zzg.android_face_master.view;
 
 import android.graphics.Bitmap;
+import android.media.FaceDetector;
 
 /**
  * @author Zhangzhenguo
@@ -9,6 +10,6 @@ import android.graphics.Bitmap;
  * @Describe
  */
 public interface MainViewCallback {
-    void success(Bitmap bitmap);
+    void success(Bitmap bitmap1,Bitmap bitmap,  FaceDetector.Face [] face,int realFaceNum);
     void error(String err);
 }

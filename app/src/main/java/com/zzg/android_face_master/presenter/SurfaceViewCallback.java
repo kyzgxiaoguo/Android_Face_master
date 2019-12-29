@@ -2,16 +2,25 @@ package com.zzg.android_face_master.presenter;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
+import android.media.FaceDetector;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
+import com.zzg.android_face_master.R;
 import com.zzg.android_face_master.model.FaceModel;
 import com.zzg.android_face_master.model.FaceTask;
 import com.zzg.android_face_master.util.CameraUtil;
 import com.zzg.android_face_master.view.MainViewCallback;
-import com.zzg.android_face_master.view.MainViews;
+
+import java.io.IOException;
+import java.util.logging.Handler;
 
 /**
  * @author Zhangzhenguo
@@ -30,17 +39,19 @@ public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.Previ
      private boolean previewing = mFrontCamera.getPreviewing();
      private Camera mCamera;
      private FaceTask mFaceTask;
-     private Camera.Parameters parameters;
      private int isFrontOrArount;
      private FaceModel model;
-    private MainViews mainViews;
     private MainViewCallback mainViewCallback;
+    private SurfaceHolder surfaceHolder;
 
-    public void setContext(Context context, int isFrontOrArount, MainViewCallback mainViewCallback) {
+    public void setContext(Context context, int isFrontOrArount, MainViewCallback mainViewCallback,SurfaceHolder surfaceHolder) {
         this.context = context;
         this.isFrontOrArount = isFrontOrArount;
+        this.surfaceHolder = surfaceHolder;
         this.mainViewCallback = mainViewCallback;
-        model=new FaceModel(mainViewCallback);
+        if (model==null){
+            model=new FaceModel(mainViewCallback);
+        }
     }
 
     /**
@@ -52,9 +63,10 @@ public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.Previ
         //初始化前置摄像头
         mFrontCamera.setCamera(mCamera);
         mCamera = mFrontCamera.initCamera(isFrontOrArount);
+        //初始化前置摄像头
         mCamera.setPreviewCallback(this);
         //适配竖排固定角度
-        mFrontCamera.setCameraDisplayOrientation((Activity) context, mFrontCamera.getCurrentCamIndex(), mCamera);
+        CameraUtil.setCameraDisplayOrientation((Activity) context, mFrontCamera.getCurrentCamIndex(), mCamera);
         Log.i(TAG, "surfaceCreated");
     }
 
@@ -64,25 +76,27 @@ public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.Previ
             mCamera.stopPreview();
             Log.i(TAG, "停止预览");
         }
-        if (mCamera!=null){
-            parameters=mCamera.getParameters();
-            //预选区域格式
-            parameters.setPictureFormat(PixelFormat.JPEG);
-            //设置预选区域大小
-            parameters.setPictureSize(width,height);
-            parameters.setJpegQuality(80);
-        }
-
         try {
             mCamera.setPreviewDisplay(holder);
-            mCamera.setPreviewCallback(this);
             mCamera.startPreview();
+            mCamera.setPreviewCallback(this);
             Log.i(TAG, "开始预览");
             //调用旋转屏幕时自适应
-            //适配竖排固定角度
-            mFrontCamera.setCameraDisplayOrientation((Activity) context, mFrontCamera.getCurrentCamIndex(), mCamera);
+            //setCameraDisplayOrientation(MainActivity.this, mCurrentCamIndex, mCamera);
         } catch (Exception e) {
         }
+
+//        if (mCamera!=null){
+//            parameters=mCamera.getParameters();
+//            parameters.setPictureFormat(PixelFormat.RGB_565);
+//           // 设置预览区域的大小
+//            parameters.setPreviewSize(width,height);
+//           // 设置每秒钟预览帧数  帧数越大识别速度越快，但建议范围25-60帧数，视手机自身性能而定
+//            parameters.setPreviewFrameRate(25);
+//           // 设置预览图片的大小
+//            parameters.setPictureSize(width,height);
+//            parameters.setJpegQuality(80);
+//        }
     }
 
     /**
@@ -104,25 +118,19 @@ public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.Previ
     public void onPreviewFrame(byte[] data, Camera camera) {
         if (mFaceTask != null) {
             switch (mFaceTask.getStatus()) {
-                case RUNNING:
-
-                    return;
                 case PENDING:
                     mFaceTask.cancel(false);
                     break;
+                case RUNNING:
+
+                    return;
+                case FINISHED:
+                    break;
             }
-
         }
-        mFaceTask = new FaceTask(data, camera,mainViewCallback);
+        mFaceTask = new FaceTask(data, camera,mainViewCallback,surfaceHolder);
         mFaceTask.execute((Void) null);
-        //Log.i(TAG, "onPreviewFrame: 启动了Task");
-    }
-
-    /**
-     * 切换前后置摄像头
-     */
-    public void setSwitchFrontOrArount(int isFrontOrArount){
-        mFrontCamera.initCamera(isFrontOrArount);
+        Log.i(TAG, "onPreviewFrame: 启动了Task");
     }
 
 }
