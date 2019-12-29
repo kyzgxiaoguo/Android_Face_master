@@ -103,8 +103,8 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
                         paint.setStrokeWidth(3);
                         paint.setStyle(Paint.Style.STROKE);
                         float eyesDistance = 0f;//两眼间距
-                        Canvas canvas =new Canvas(bitmap1);
-                            for(int i = 0; i < faces.length; i++){
+                        Canvas canvas =new Canvas(bitmap);
+                        for(int i = 0; i < faces.length; i++){
                             FaceDetector.Face face = faces[i];
                             if(face != null){
                                 PointF pointF = new PointF();
@@ -114,9 +114,6 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
                                 canvas.drawRect(pointF.x - eyesDistance, pointF.y - eyesDistance, pointF.x + eyesDistance, pointF.y + eyesDistance, paint);
                             }
                         }
-
-
-
                         mSurfaceView.invalidate();
                         bitmap1.recycle();
                         bitmap.recycle();

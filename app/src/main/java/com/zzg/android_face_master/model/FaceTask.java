@@ -3,6 +3,7 @@ package com.zzg.android_face_master.model;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -103,7 +104,10 @@ public class FaceTask extends AsyncTask{
         }
         FaceDetector.Face [] faces=new FaceDetector.Face[10];
         Paint paint =new Paint();
-        paint.setDither(true);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setColor(Color.RED);
+        paint.setStrokeWidth(2);
+
         Canvas canvas =new Canvas();
         canvas.setBitmap(bitmap2);
         canvas.setMatrix(matrix);
