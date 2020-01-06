@@ -7,5 +7,9 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
     </style>
+    <declare-styleable name="RectanglesView">
+        <attr format="color" name="rectanglesColor"/>
+        <attr format="dimension" name="rectanglesStrokeWidth"/>
+    </declare-styleable>
 
 </resources>

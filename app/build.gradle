@@ -47,4 +47,6 @@ dependencies {
     //拍照图库选择
     implementation 'com.github.LuckSiege.PictureSelector:picture_library:v2.2.4'
     compile project(path: ':orcdiscern')
+
+    implementation 'androidx.recyclerview:recyclerview:1.0.0'
 }

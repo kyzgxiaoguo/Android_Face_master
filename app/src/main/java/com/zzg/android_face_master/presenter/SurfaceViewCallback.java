@@ -47,7 +47,6 @@ public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.Previ
     public void setContext(Context context, int isFrontOrArount, MainViewCallback mainViewCallback,SurfaceHolder surfaceHolder) {
         this.context = context;
         this.isFrontOrArount = isFrontOrArount;
-        this.surfaceHolder = surfaceHolder;
         this.mainViewCallback = mainViewCallback;
         if (model==null){
             model=new FaceModel(mainViewCallback);
@@ -72,6 +71,7 @@ public class SurfaceViewCallback implements SurfaceHolder.Callback, Camera.Previ
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        this.surfaceHolder=holder;
         if (previewing) {
             mCamera.stopPreview();
             Log.i(TAG, "停止预览");

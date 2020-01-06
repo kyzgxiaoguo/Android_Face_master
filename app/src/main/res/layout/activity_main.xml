@@ -4,20 +4,19 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     tools:context=".MainActivity">
    <SurfaceView
        android:id="@+id/mSurFaceView"
        android:layout_width="match_parent"
-       android:layout_height="match_parent"
-       android:scrollIndicators="right">
+       android:layout_height="match_parent">
    </SurfaceView>
-   <SurfaceView
-       android:id="@+id/mSurFaceView1"
+   <com.zzg.android_face_master.view.SupSurfaceCanvasView
+       android:id="@+id/rectanglesView"
        android:layout_width="match_parent"
        android:layout_height="match_parent"
-       android:scrollIndicators="right">
-   </SurfaceView>
+       app:rectanglesColor="@color/colorAccent"
+       app:rectanglesStrokeWidth="2dp">
+   </com.zzg.android_face_master.view.SupSurfaceCanvasView>
    <Button
        android:id="@+id/btSetFace"
        android:layout_width="200dp"

@@ -2,6 +2,10 @@ package com.zzg.android_face_master.view;
 
 import android.graphics.Bitmap;
 import android.media.FaceDetector;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+
+import java.util.List;
 
 /**
  * @author Zhangzhenguo
@@ -10,6 +14,6 @@ import android.media.FaceDetector;
  * @Describe
  */
 public interface MainViewCallback {
-    void success(Bitmap bitmap1,Bitmap bitmap,  FaceDetector.Face [] face,int realFaceNum);
+    void success(Bitmap bitmap1, Bitmap bitmap, List<FaceDetector.Face> face, int realFaceNum, SurfaceHolder surfaceHolder);
     void error(String err);
 }

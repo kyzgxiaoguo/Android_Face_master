@@ -8,13 +8,13 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PointF;
+import android.graphics.Rect;
 import android.hardware.Camera;
 import android.media.FaceDetector;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -23,6 +23,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.constraintlayout.solver.widgets.Rectangle;
 
 import com.hg.orcdiscern.bean.LocalMediaa;
 import com.hg.orcdiscern.presenter.PictureConfigs;
@@ -32,7 +33,9 @@ import com.hg.orcdiscern.view.MainView;
 import com.zzg.android_face_master.base.BaseActivity;
 import com.zzg.android_face_master.presenter.SurfaceViewCallback;
 import com.zzg.android_face_master.view.MainViewCallback;
+import com.zzg.android_face_master.view.SupSurfaceCanvasView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
@@ -46,21 +49,21 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
     Button btGetFace;
     @BindView(R.id.mSurFaceView)
     SurfaceView mSurfaceView;
-    @BindView(R.id.mSurFaceView1)
-    SurfaceView mSurFaceView1;
+    @BindView(R.id.rectanglesView)
+    SupSurfaceCanvasView rectanglesView;
 
     private Context mContext;
     private MainView mainView;
 
-    private Paint paint;
     private Handler handler;
-    private Bitmap bitmap;
-    private Bitmap bitmap1;
     private int realFaceNum;
-    private FaceDetector.Face [] faces;
+    private List<FaceDetector.Face> faces;
+    private Bitmap bitmap1;
+    private Bitmap bitmap;
 
     public SurfaceHolder mSurfaceHolder;
-    public SurfaceViewCallback mCallback= new SurfaceViewCallback();;
+    public SurfaceViewCallback mCallback = new SurfaceViewCallback();
+    ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,49 +82,32 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
         //实例化SurfaceHolder对象
         mSurfaceHolder = mSurfaceView.getHolder();
         //设置SurfaceView分辨率
-        mSurfaceHolder.setFixedSize(1920,1080);
+        mSurfaceHolder.setFixedSize(1920, 1080);
         //设置SurfaceView的缓冲类型
         mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         //设置屏幕长亮
         mSurfaceHolder.setKeepScreenOn(true);
         //添加CallBack回调事件
         mSurfaceHolder.addCallback(mCallback);
-        mCallback.setContext(mContext,Camera.CameraInfo.CAMERA_FACING_FRONT,this,mSurfaceHolder);
-
+        mCallback.setContext(mContext, Camera.CameraInfo.CAMERA_FACING_FRONT, this, mSurfaceHolder);
     }
 
     private void initData() {
-        handler=new Handler(){
+        handler = new Handler() {
             @Override
             public void handleMessage(@NonNull Message msg) {
                 super.handleMessage(msg);
-                switch (msg.what){
+                switch (msg.what) {
                     case 1:
                         Toast.makeText(MainActivity.this, "图片中检测到" + realFaceNum + "张人脸", Toast.LENGTH_SHORT).show();
-                        paint= new Paint();
-                        paint.setColor(Color.RED);
-                        paint.setStrokeWidth(3);
-                        paint.setStyle(Paint.Style.STROKE);
-                        float eyesDistance = 0f;//两眼间距
-                        Canvas canvas =new Canvas(bitmap);
-                        for(int i = 0; i < faces.length; i++){
-                            FaceDetector.Face face = faces[i];
-                            if(face != null){
-                                PointF pointF = new PointF();
-                                face.getMidPoint(pointF);//获取人脸中心点
-                                eyesDistance = face.eyesDistance();//获取人脸两眼的间距
-                                //画出人脸的区域
-                                canvas.drawRect(pointF.x - eyesDistance, pointF.y - eyesDistance, pointF.x + eyesDistance, pointF.y + eyesDistance, paint);
-                            }
-                        }
-                        mSurfaceView.invalidate();
-                        bitmap1.recycle();
+                        rectanglesView.setRectangles(faces,bitmap);
                         bitmap.recycle();
+                        bitmap1.recycle();
                         break;
                     case 0:
                         break;
-                        default:
-                            break;
+                    default:
+                        break;
                 }
             }
         };
@@ -210,20 +196,21 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
 
     /**
      * 返回函数
+     *
      * @param bitmap
      */
     @Override
-    public void success(Bitmap bitmap1,Bitmap bitmap, FaceDetector.Face[] faces,int realFaceNum) {
-        Log.d("执行","12312"+realFaceNum+"="+faces.length);
-        this.bitmap=bitmap;
-        this.bitmap1=bitmap1;
-        this.faces=faces;
-        this.realFaceNum=realFaceNum;
+    public void success(Bitmap bitmap1, Bitmap bitmap, List<FaceDetector.Face> faces, int realFaceNum, SurfaceHolder surfaceHolder) {
+        Log.d("执行", "12312" + realFaceNum + "=" + faces.size());
+        this.faces = faces;
+        this.bitmap1 = bitmap1;
+        this.bitmap = bitmap;
+        this.realFaceNum = realFaceNum;
         handler.sendEmptyMessage(1);
     }
 
     @Override
     public void error(String err) {
-        Log.d("MainErr",err);
+        Log.d("MainErr", err);
     }
 }

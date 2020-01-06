@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
@@ -19,6 +20,8 @@ import com.zzg.android_face_master.util.CameraUtil;
 import com.zzg.android_face_master.view.MainViewCallback;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Zhangzhenguo
@@ -102,24 +105,31 @@ public class FaceTask extends AsyncTask{
             default:
                 break;
         }
-        FaceDetector.Face [] faces=new FaceDetector.Face[10];
         Paint paint =new Paint();
         paint.setStyle(Paint.Style.STROKE);
         paint.setColor(Color.RED);
-        paint.setStrokeWidth(2);
+        paint.setStrokeWidth(10);
 
         Canvas canvas =new Canvas();
         canvas.setBitmap(bitmap2);
         canvas.setMatrix(matrix);
-//         将bitmap1画到bitmap2上（这里的偏移参数根据实际情况可能要修改）
+////         将bitmap1画到bitmap2上（这里的偏移参数根据实际情况可能要修改）
         canvas.drawBitmap(bitmap1,0,0,paint);
+
+        FaceDetector.Face [] faces=new FaceDetector.Face[10];
         int faceNumber = detector.findFaces(bitmap2, faces);
         Log.e("---------->","faceNumber:"+faceNumber+"faces.size:"+faces.length);
-        Log.i(TAG, "onPreviewFrame: rawbitmap:" + bitmap2.toString());
         if(faceNumber!=0) {
-            model.success(bitmap1,bitmap2,faces,faceNumber);
+            List<FaceDetector.Face> facesDraw=new ArrayList<>();
+            for (FaceDetector.Face face:faces){
+                if (face!=null){
+                    facesDraw.add(face);
+                }
+            }
+            model.success(bitmap1,bitmap2,facesDraw,faceNumber,surfaceHolder);
         }
-
+//        bitmap2.recycle();
+//        bitmap1.recycle();
         //若要存储可以用下列代码，格式为jpg
             /* BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(Environment.getExternalStorageDirectory().getPath()+"/fp.jpg"));
             img.compressToJpeg(rect, 100, bos);
@@ -127,10 +137,5 @@ public class FaceTask extends AsyncTask{
             bos.close();
             mCamera.startPreview();
             */
-
-//        canvas.drawRect((int) ((mWidth-midPoint.x) - (eyesDistance*2+eyesDistance/2)),
-//                (int) (midPoint.y-eyesDistance)+210,
-//         (int) ( (mWidth-midPoint.x) + (eyesDistance/3)),
-//         (int) (midPoint.y+(eyesDistance*2+eyesDistance/2))+210,paint);
     }
 }
