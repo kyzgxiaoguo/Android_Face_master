@@ -1,8 +1,11 @@
 package com.zzg.android_face_master.newFace;
 
-import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -10,45 +13,75 @@ import android.hardware.Camera;
 import android.media.FaceDetector;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.PersistableBundle;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.Toast;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.luck.picture.lib.PictureSelector;
+import com.luck.picture.lib.config.PictureConfig;
+import com.luck.picture.lib.config.PictureMimeType;
+import com.luck.picture.lib.entity.LocalMedia;
 import com.zzg.android_face_master.R;
+import com.zzg.android_face_master.base.BaseActivity;
+import com.zzg.android_face_master.newFace.adapter.ImagePreviewAdapter;
+import com.zzg.android_face_master.newFace.adapter.ImagePreviewGraphAdapter;
 import com.zzg.android_face_master.newFace.bean.FaceResultData;
+import com.zzg.android_face_master.newFace.http.resultbean.Requstbean;
+import com.zzg.android_face_master.newFace.http.util.HttpCheckNetWorkUtil;
+import com.zzg.android_face_master.newFace.http.util.RetrofitHttp;
 import com.zzg.android_face_master.newFace.util.CameraErrorCallback;
 import com.zzg.android_face_master.newFace.util.ImageUtils;
 import com.zzg.android_face_master.newFace.util.Util;
 import com.zzg.android_face_master.newFace.view.FaceOverlayView;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
-public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder.Callback, Camera.PreviewCallback {
+public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Callback, Camera.PreviewCallback {
 
     @BindView(R.id.mSurfaceview)
     SurfaceView mSurfaceview;
     @BindView(R.id.mRecyclerView)
     RecyclerView mRecyclerView;
-//    总摄像头数
+    @BindView(R.id.mRecyclerViewGraph)
+    RecyclerView mRecyclerViewGraph;
+    @BindView(R.id.btOpenGraph)
+    Button btOpenGraph;
+    @BindView(R.id.btContrast)
+    Button btContrast;
+    @BindView(R.id.ivImage)
+    ImageView ivImage;
+    //    总摄像头数
     private int numberOfCameras;
 
     public static final String TAG = FaceViewActivity.class.getSimpleName();
@@ -69,7 +102,7 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
     // 摄像头error回调
     private final CameraErrorCallback mErrorCallback = new CameraErrorCallback();
 
-//    人脸个数最大
+    //    人脸个数最大
     private static final int MAX_FACE = 10;
     private boolean isThreadWorking = false;
     private Handler handler;
@@ -83,32 +116,36 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
     private int bufflen;
     private int[] rgbs;
 
-//    存储检测人脸数据
+    //    存储检测人脸数据
     private FaceResultData faces[];
     private FaceResultData faces_previous[];
     private int Id = 0;
 
     private String BUNDLE_CAMERA_ID = "camera";
+
+    //  显示适配器
 //    人脸截图后保存并显示
     private HashMap<Integer, Integer> facesCount = new HashMap<>();
-//  显示适配器
+    private ImagePreviewAdapter imagePreviewAdapter;
     private ArrayList<Bitmap> facesBitmap;
+
+    private ImagePreviewGraphAdapter imageGrpahAdapter;
+    private ArrayList<Bitmap> graphBitmap;
+    Context mContext=FaceViewActivity.this;
+    private ProgressDialog mProgressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_face_view);
         ButterKnife.bind(this);
+
+        listener();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // 实例化人脸跟踪视图
         mFaceView = new FaceOverlayView(this);
         addContentView(mFaceView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-//        截图保存并显示
-        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
-        mRecyclerView.setLayoutManager(mLayoutManager);
-        mRecyclerView.setItemAnimator(new DefaultItemAnimator());
-
 
         handler = new Handler();
 //        设置最大检测数
@@ -124,7 +161,7 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
     }
 
 
-//    当当前activity加载完成后调用
+    //    当当前activity加载完成后调用
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
@@ -132,6 +169,195 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
         // permission is not granted yet, request permission.
         SurfaceHolder holder = mSurfaceview.getHolder();
         holder.addCallback(this);
+    }
+
+    private void listener() {
+        //拍照
+        btOpenGraph.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getPictureFromCapture();
+            }
+        });
+    }
+
+    /**
+     * 调用拍照
+     */
+    public void getPictureFromCapture() {
+        PictureSelector.create(FaceViewActivity.this)
+                .openCamera(PictureMimeType.ofImage())
+                .imageFormat(PictureMimeType.PNG)// 拍照保存图片格式后缀,默认jpeg
+                .compress(true)
+                .forResult(PictureConfig.CHOOSE_REQUEST);
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case PictureConfig.CHOOSE_REQUEST:
+                    // 图片、视频、音频选择结果回调
+                    List<LocalMedia> selectList = PictureSelector.obtainMultipleResult(data);
+                    // 例如 LocalMedia 里面返回三种path
+                    // 1.media.getPath(); 为原图path
+                    // 2.media.getCutPath();为裁剪后path，需判断media.isCut();是否为true  注意：音视频除外
+                    // 3.media.getCompressPath();为压缩后path，需判断media.isCompressed();是否为true  注意：音视频除外
+                    // 如果裁剪并压缩了，以取压缩路径为准，因为是先裁剪后压缩的
+                    Log.d("执行", selectList.get(0).getPath());
+                    try {
+                        FileInputStream outFile = new FileInputStream(selectList.get(0).getPath());
+//                        Bitmap bitmap =compressImage(BitmapFactory.decodeStream(outFile)) ;
+                        Bitmap bitmap = getimage(selectList.get(0).getPath());
+                        ivImage.setImageBitmap(bitmap);
+//                        bitmap.recycle();
+//                        outFile.close();
+//                        imageGrpahAdapter.add(bitmap);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+            }
+        }
+    }
+    /**
+     * 自定义规则生成32位编码
+     * @return string
+     */
+    public static String getUUIDByRules(String rules) {
+        String radStr = rules;
+        int rpoint = 0;
+        StringBuffer generateRandStr = new StringBuffer();
+        Random rand = new Random();
+        int length = 32;
+        for(int i=0;i<length;i++) {
+            if(rules!=null){
+                rpoint = rules.length();
+                int randNum = rand.nextInt(rpoint);
+                generateRandStr.append(radStr.substring(randNum,randNum+1));
+            }
+        }
+        return generateRandStr+"";
+    }
+
+    /**
+     * 人脸对比
+     * @param bitmap
+     */
+    private void upIDData(Bitmap bitmap) {
+        HttpCheckNetWorkUtil checkNetWord = new HttpCheckNetWorkUtil();
+        if (!checkNetWord.checkNotWorkAvailable(mContext)) {
+            Toast.makeText(mContext, "请检查网络后再重试。", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Map<String,Object> map=new HashMap<>();
+        map.put("app_id",2127336491);
+        map.put("time_stamp",10000);
+        map.put("nonce_str","");
+        map.put("sign","");
+        map.put("image_q",);
+        map.put("image_b",);
+        StringBuffer baseString=new StringBuffer();
+        for (int i=0;i<map.size();i++){
+            baseString.append(map.get("app_id").toString().trim()).append("&").append(URLEncoder.encode(param.getValue().trim(),"UTF-8")).append("&");
+        }
+
+
+
+
+
+
+        mProgressDialog = new ProgressDialog(mContext);
+        mProgressDialog.setMessage("正在识别信息中...");
+        mProgressDialog.show();
+        /**
+         * 设置请求头并添加数据
+         * @param content
+         * @return
+         */
+        RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), bitmap);
+        RetrofitHttp.getRetrofit().classification(body).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                if (response.body() != null) {
+                    String str = null;
+                    try {
+                        str = response.body().string();
+//                        Log.d("执行success==", str);
+                        showAlertDialog(mContext, "身份证信息", str, "确认", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+                        mProgressDialog.dismiss();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.d("执行error==", "网络请求失败"+call.toString());
+                Toast.makeText(mContext, "请求失败", Toast.LENGTH_SHORT).show();
+                mProgressDialog.dismiss();
+            }
+        });
+    }
+
+
+
+
+    /**
+     * 压缩
+     * @param image
+     * @return
+     */
+    public Bitmap compressImage(Bitmap image) {
+        ByteArrayOutputStream baos=new ByteArrayOutputStream();
+        image.compress(Bitmap.CompressFormat.PNG,100,baos);
+        int options = 90;
+        while (baos.toByteArray().length / 1024 > 100) { // 循环判断如果压缩后图片是否大于100kb,大于继续压缩
+            baos.reset(); // 重置baos即清空baos
+            image.compress(Bitmap.CompressFormat.JPEG, options, baos);// 这里压缩options%，把压缩后的数据存放到baos中
+            options -= 10;// 每次都减少10
+        }
+        ByteArrayInputStream isBm = new ByteArrayInputStream(baos.toByteArray());// 把压缩后的数据baos存放到ByteArrayInputStream中
+        Bitmap bitmap = BitmapFactory.decodeStream(isBm, null, null);// 把ByteArrayInputStream数据生成图片
+        return bitmap;
+    }
+
+    /**
+     * 图片按比例大小压缩方法
+     * @param srcPath （根据路径获取图片并压缩）
+     * @return
+     */
+    public Bitmap getimage(String srcPath) {
+        BitmapFactory.Options newOpts = new BitmapFactory.Options();
+        // 开始读入图片，此时把options.inJustDecodeBounds 设回true了
+        newOpts.inJustDecodeBounds = true;
+        Bitmap bitmap = BitmapFactory.decodeFile(srcPath, newOpts);// 此时返回bm为空
+        newOpts.inJustDecodeBounds = false;
+        int w = newOpts.outWidth;
+        int h = newOpts.outHeight;
+        // 现在主流手机比较多是800*480分辨率，所以高和宽我们设置为
+        float hh = 800f;// 这里设置高度为800f
+        float ww = 480f;// 这里设置宽度为480f
+        // 缩放比。由于是固定比例缩放，只用高或者宽其中一个数据进行计算即可
+        int be = 1;// be=1表示不缩放
+        if (w > h && w > ww) {// 如果宽度大的话根据宽度固定大小缩放
+            be = (int) (newOpts.outWidth / ww);
+        } else if (w < h && h > hh) {// 如果高度高的话根据宽度固定大小缩放
+            be = (int) (newOpts.outHeight / hh);
+        }
+        if (be <= 0)
+            be = 1;
+        newOpts.inSampleSize = be;// 设置缩放比例
+        // 重新读入图片，注意此时已经把options.inJustDecodeBounds 设回false了
+        bitmap = BitmapFactory.decodeFile(srcPath, newOpts);
+        return compressImage(bitmap);// 压缩好比例大小后再进行质量压缩
     }
 
 
@@ -184,6 +410,7 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
     protected void onDestroy() {
         super.onDestroy();
         resetData();
+//        graphResetData();
     }
 
 
@@ -193,36 +420,38 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
         outState.putInt(BUNDLE_CAMERA_ID, cameraId);
     }
 
-//    创建并显示时调用
+    //    创建并显示时调用
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
-        //Find the total number of cameras available
         resetData();
-
+//        graphResetData();
+//        获取摄像头总数
         numberOfCameras = Camera.getNumberOfCameras();
+        //判断开启前置或后置摄像头
         Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
         for (int i = 0; i < Camera.getNumberOfCameras(); i++) {
             Camera.getCameraInfo(i, cameraInfo);
+//            后置
             if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                 if (cameraId == 0) cameraId = i;
             }
         }
-
         mCamera = Camera.open(cameraId);
-
         Camera.getCameraInfo(cameraId, cameraInfo);
+//        前置
         if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             mFaceView.setFront(true);
         }
 
         try {
+            //将SurfaceView连接到相机
             mCamera.setPreviewDisplay(mSurfaceview.getHolder());
         } catch (Exception e) {
             Log.e(TAG, "Could not preview the image.", e);
         }
     }
 
-//    当旋转或尺寸发生变化时调用
+    //    当旋转或尺寸发生变化时调用
     @Override
     public void surfaceChanged(SurfaceHolder surfaceHolder, int format, int width, int height) {
         // We have no surface, return immediately:
@@ -248,7 +477,7 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
         grayBuff = new byte[bufflen];
         rgbs = new int[bufflen];
 
-        // Everything is configured! Finally start the camera preview again:
+        // 实时预览摄像头图像数据
         startPreview();
     }
 
@@ -319,7 +548,7 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
             cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
     }
 
-//    重新打开并设置摄像头
+    //    开始预览-显示实时摄像头图像
     private void startPreview() {
         if (mCamera != null) {
             isThreadWorking = false;
@@ -330,7 +559,7 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
     }
 
 
-//    当关闭隐藏时调用
+    //    当关闭隐藏时调用
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
         mCamera.setPreviewCallbackWithBuffer(null);
@@ -439,9 +668,9 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
                     break;
             }
 
-            mDetector = new android.media.FaceDetector(bmp.getWidth(), bmp.getHeight(), MAX_FACE);
+            mDetector = new FaceDetector(bmp.getWidth(), bmp.getHeight(), MAX_FACE);
 
-            android.media.FaceDetector.Face[] fullResults = new android.media.FaceDetector.Face[MAX_FACE];
+            FaceDetector.Face[] fullResults = new FaceDetector.Face[MAX_FACE];
             mDetector.findFaces(bmp, fullResults);
 
             for (int i = 0; i < MAX_FACE; i++) {
@@ -456,7 +685,7 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
 
                     float eyesDis = fullResults[i].eyesDistance() * xScale;
                     float confidence = fullResults[i].confidence();
-                    float pose = fullResults[i].pose(android.media.FaceDetector.Face.EULER_Y);
+                    float pose = fullResults[i].pose(FaceDetector.Face.EULER_Y);
                     int idFace = Id;
 
                     Rect rect = new Rect(
@@ -468,7 +697,7 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
                     /**
                      * Only detect face size > 100x100
                      */
-                    if(rect.height() * rect.width() > 100 * 100) {
+                    if (rect.height() * rect.width() > 100 * 100) {
                         // Check this face and previous face have same ID?
                         for (int j = 0; j < MAX_FACE; j++) {
                             float eyesDisPre = faces_previous[j].eyesDistance();
@@ -504,15 +733,13 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
                             if (count <= 5)
                                 facesCount.put(idFace, count);
 
-                            //
-                            // Crop Face to display in RecylerView
-                            //
+                            // 复制图像bitmap到新bitmap中
                             if (count == 5) {
                                 faceCroped = ImageUtils.cropFace(faces[i], bitmap, rotate);
                                 if (faceCroped != null) {
                                     handler.post(new Runnable() {
                                         public void run() {
-//                                            imagePreviewAdapter.add(faceCroped);
+                                            imagePreviewAdapter.add(faceCroped);
                                         }
                                     });
                                 }
@@ -559,21 +786,48 @@ public class FaceViewActivity extends AppCompatActivity implements SurfaceHolder
     }
 
     /**
-     * Release Memory
+     * 识别列表
      */
     private void resetData() {
-//        if (imagePreviewAdapter == null) {
-//            facesBitmap = new ArrayList<>();
-//            imagePreviewAdapter = new ImagePreviewAdapter(FaceDetectGrayActivity.this, facesBitmap, new ImagePreviewAdapter.ViewHolder.OnItemClickListener() {
-//                @Override
-//                public void onClick(View v, int position) {
-//                    imagePreviewAdapter.setCheck(position);
-//                    imagePreviewAdapter.notifyDataSetChanged();
-//                }
-//            });
-//            mRecyclerView.setAdapter(imagePreviewAdapter);
-//        } else {
-//            imagePreviewAdapter.clearAll();
-//        }
+        if (imagePreviewAdapter == null) {
+            facesBitmap = new ArrayList<>();
+            //        截图保存并显示
+            RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
+            mRecyclerView.setLayoutManager(mLayoutManager);
+            mRecyclerView.setItemAnimator(new DefaultItemAnimator());
+            imagePreviewAdapter = new ImagePreviewAdapter(FaceViewActivity.this, facesBitmap, new ImagePreviewAdapter.ViewHolder.OnItemClickListener() {
+                @Override
+                public void onClick(View v, int position) {
+                    imagePreviewAdapter.setCheck(position);
+                    imagePreviewAdapter.notifyDataSetChanged();
+                }
+            });
+            mRecyclerView.setAdapter(imagePreviewAdapter);
+        } else {
+            imagePreviewAdapter.clearAll();
+        }
+    }
+
+    /**
+     * 拍照列表
+     */
+    private void graphResetData() {
+        if (imageGrpahAdapter == null) {
+            graphBitmap = new ArrayList<>();
+            //        截图保存并显示
+            RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
+            mRecyclerViewGraph.setLayoutManager(mLayoutManager);
+            mRecyclerViewGraph.setItemAnimator(new DefaultItemAnimator());
+            imageGrpahAdapter = new ImagePreviewGraphAdapter(FaceViewActivity.this, graphBitmap, new ImagePreviewGraphAdapter.ViewHolder.OnItemClickListener() {
+                @Override
+                public void onClick(View v, int position) {
+                    imageGrpahAdapter.setCheck(position);
+                    imageGrpahAdapter.notifyDataSetChanged();
+                }
+            });
+            mRecyclerViewGraph.setAdapter(imageGrpahAdapter);
+        } else {
+            imageGrpahAdapter.clearAll();
+        }
     }
 }

@@ -6,8 +6,10 @@ import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.hg.orcdiscern.http.util.DialogUtil;
 import com.tbruyelle.rxpermissions2.Permission;
 import com.tbruyelle.rxpermissions2.RxPermissions;
+import com.zzg.android_face_master.newFace.http.util.AlertDialogUtil;
 
 import io.reactivex.functions.Consumer;
 
@@ -17,7 +19,7 @@ import io.reactivex.functions.Consumer;
  * @Email 18311371235@163.com
  * @Describe
  */
-public class BaseActivity extends AppCompatActivity {
+public class BaseActivity extends AppCompatActivity implements AlertDialogUtil {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
