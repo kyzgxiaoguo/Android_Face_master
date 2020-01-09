@@ -2,8 +2,9 @@ package com.zzg.android_face_master.newFace.http.util;
 
 import android.util.Log;
 
-import com.hg.orcdiscern.http.api.APIInterface;
-import com.hg.orcdiscern.http.api.Port;
+
+import com.zzg.android_face_master.newFace.http.api.APIInterface;
+import com.zzg.android_face_master.newFace.http.api.Port;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +29,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
  */
 
 public class RetrofitHttp {
-    private static String baseUrl = "https://api.ai.qq.com";
+//    private static String baseUrl = "https://api.ai.qq.com";
+    private static String baseUrl = "https://aip.baidubce.com";
     private static APIInterface singleton;
 
     /**
@@ -78,7 +80,7 @@ public class RetrofitHttp {
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
         interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(baseUrl+ Port.port)
+                .baseUrl(baseUrl)
                 .addConverterFactory(GsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .client(client)

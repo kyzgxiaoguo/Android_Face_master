@@ -1,6 +1,7 @@
 package com.zzg.android_face_master.newFace.http.resultbean;
 
-import com.hg.orcdiscern.http.util.HttpDialogUtil;
+
+import com.zzg.android_face_master.newFace.http.util.HttpDialogUtil;
 
 public interface RequestHttpCallback {
      //网络吐司

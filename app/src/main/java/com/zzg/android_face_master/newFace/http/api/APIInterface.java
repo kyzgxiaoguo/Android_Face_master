@@ -15,7 +15,9 @@ public interface APIInterface {
      * 人脸对比
      */
     @Headers({"Content-Type: application/json", "Accept: application/json"})
-    @POST("/fcgi-bin/face/face_facecompare")
-    Call<ResponseBody> classification(@Body RequestBody arg0
-    );
+//    腾讯
+//    @POST("/fcgi-bin/face/face_facecompare")
+//    百度
+    @POST("/rest/2.0/face/v3/match")
+    Call<ResponseBody> contrast(@Body RequestBody arg0);
 }

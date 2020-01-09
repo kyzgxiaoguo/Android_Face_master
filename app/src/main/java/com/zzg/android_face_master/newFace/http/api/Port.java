@@ -7,6 +7,6 @@ package com.zzg.android_face_master.newFace.http.api;
  * @Describe
  */
 public class Port {
-    public static String port="10002";
+//    public static String port="10003";
     public String POSTADDRESS="/icr/recognize_id_card";
 }

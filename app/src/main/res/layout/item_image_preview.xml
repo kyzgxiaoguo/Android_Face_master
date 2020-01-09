@@ -17,6 +17,7 @@
         android:id="@+id/layoutCheck"
         android:layout_width="@dimen/image_preview"
         android:layout_height="@dimen/image_preview"
+        android:visibility="gone"
         android:background="@color/colorBlackOverlay">
 
         <ImageView
@@ -25,6 +26,7 @@
             android:layout_height="wrap_content"
             android:src="@drawable/ic_check_white_24dp"
             android:layout_centerVertical="true"
+            android:visibility="gone"
             android:layout_centerHorizontal="true" />
 
     </RelativeLayout>

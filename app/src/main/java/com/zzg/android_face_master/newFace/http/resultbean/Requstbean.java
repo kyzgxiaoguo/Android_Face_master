@@ -7,58 +7,49 @@ package com.zzg.android_face_master.newFace.http.resultbean;
  * @Describe
  */
 public class Requstbean{
-    public int app_id=2127336491;
-    public int time_stamp=10000;
-    private String nonce_str;
-    private String sign;
-    private String image_a;
-    private String image_b;
+    public String image;
+    public String image_type;
+    private String face_type;
+    private String quality_control;
+    private String liveness_control;
 
-    public int getApp_id() {
-        return app_id;
+    public String getImage() {
+        return image;
     }
 
-    public void setApp_id(int app_id) {
-        this.app_id = app_id;
+    public void setImage(String image) {
+        this.image = image;
     }
 
-    public int getTime_stamp() {
-        return time_stamp;
+    public String getImage_type() {
+        return image_type;
     }
 
-    public void setTime_stamp(int time_stamp) {
-        this.time_stamp = time_stamp;
+    public void setImage_type(String image_type) {
+        this.image_type = image_type;
     }
 
-    public String getNonce_str() {
-        return nonce_str;
+    public String getFace_type() {
+        return face_type;
     }
 
-    public void setNonce_str(String nonce_str) {
-        this.nonce_str = nonce_str;
+    public void setFace_type(String face_type) {
+        this.face_type = face_type;
     }
 
-    public String getSign() {
-        return sign;
+    public String getQuality_control() {
+        return quality_control;
     }
 
-    public void setSign(String sign) {
-        this.sign = sign;
+    public void setQuality_control(String quality_control) {
+        this.quality_control = quality_control;
     }
 
-    public String getImage_a() {
-        return image_a;
+    public String getLiveness_control() {
+        return liveness_control;
     }
 
-    public void setImage_a(String image_a) {
-        this.image_a = image_a;
-    }
-
-    public String getImage_b() {
-        return image_b;
-    }
-
-    public void setImage_b(String image_b) {
-        this.image_b = image_b;
+    public void setLiveness_control(String liveness_control) {
+        this.liveness_control = liveness_control;
     }
 }

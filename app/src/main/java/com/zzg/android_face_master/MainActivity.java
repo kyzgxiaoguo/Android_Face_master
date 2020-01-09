@@ -25,12 +25,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.solver.widgets.Rectangle;
 
-import com.hg.orcdiscern.bean.LocalMediaa;
-import com.hg.orcdiscern.presenter.PictureConfigs;
-import com.hg.orcdiscern.presenter.PictureSelectors;
-import com.hg.orcdiscern.util.ImageUtils;
-import com.hg.orcdiscern.view.MainView;
 import com.zzg.android_face_master.base.BaseActivity;
+import com.zzg.android_face_master.newFace.bean.LocalMediaa;
+import com.zzg.android_face_master.newFace.util.IMGUtils;
+import com.zzg.android_face_master.newFace.util.ImageUtils;
+import com.zzg.android_face_master.newFace.util.PictureConfigs;
+import com.zzg.android_face_master.newFace.util.PictureSelectors;
 import com.zzg.android_face_master.presenter.SurfaceViewCallback;
 import com.zzg.android_face_master.view.MainViewCallback;
 import com.zzg.android_face_master.view.SupSurfaceCanvasView;
@@ -53,7 +53,6 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
     SupSurfaceCanvasView rectanglesView;
 
     private Context mContext;
-    private MainView mainView;
 
     private Handler handler;
     private int realFaceNum;
@@ -77,7 +76,6 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
 
     private void initView() {
         mContext = MainActivity.this;
-        mainView = MainView.getInstance(MainActivity.this, MainActivity.this);
 
         //实例化SurfaceHolder对象
         mSurfaceHolder = mSurfaceView.getHolder();
@@ -172,7 +170,7 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
                     // 如果裁剪并压缩了，以取压缩路径为准，因为是先裁剪后压缩的
                     Log.d("执行", selectList.get(0).getPath());
                     try {
-                        byte[] b = ImageUtils.readStream(selectList.get(0).getPath());
+                        byte[] b = IMGUtils.readStream(selectList.get(0).getPath());
 
                         reqEntrance(b);
                     } catch (Exception e) {

@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -20,6 +19,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.alibaba.fastjson.JSON;
 import com.luck.picture.lib.PictureSelector;
 import com.luck.picture.lib.config.PictureConfig;
 import com.luck.picture.lib.config.PictureMimeType;
@@ -36,36 +37,28 @@ import com.zzg.android_face_master.base.BaseActivity;
 import com.zzg.android_face_master.newFace.adapter.ImagePreviewAdapter;
 import com.zzg.android_face_master.newFace.adapter.ImagePreviewGraphAdapter;
 import com.zzg.android_face_master.newFace.bean.FaceResultData;
+import com.zzg.android_face_master.newFace.http.baidu.Base64Util;
+import com.zzg.android_face_master.newFace.http.baidu.HttpUtil;
 import com.zzg.android_face_master.newFace.http.resultbean.Requstbean;
+import com.zzg.android_face_master.newFace.http.util.AuthService;
 import com.zzg.android_face_master.newFace.http.util.HttpCheckNetWorkUtil;
-import com.zzg.android_face_master.newFace.http.util.RetrofitHttp;
 import com.zzg.android_face_master.newFace.util.CameraErrorCallback;
+import com.zzg.android_face_master.newFace.util.IMGUtils;
 import com.zzg.android_face_master.newFace.util.ImageUtils;
 import com.zzg.android_face_master.newFace.util.Util;
+import com.zzg.android_face_master.newFace.view.CircleSurfaceView;
 import com.zzg.android_face_master.newFace.view.FaceOverlayView;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import okhttp3.MediaType;
-import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Callback, Camera.PreviewCallback {
 
@@ -79,8 +72,14 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     Button btOpenGraph;
     @BindView(R.id.btContrast)
     Button btContrast;
-    @BindView(R.id.ivImage)
-    ImageView ivImage;
+    @BindView(R.id.ivImageA)
+    ImageView ivImageA;
+    @BindView(R.id.ivImageB)
+    ImageView ivImageB;
+    @BindView(R.id.csView)
+    CircleSurfaceView csView;
+    @BindView(R.id.fflayout)
+    FrameLayout fflayout;
     //    总摄像头数
     private int numberOfCameras;
 
@@ -131,17 +130,25 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
 
     private ImagePreviewGraphAdapter imageGrpahAdapter;
     private ArrayList<Bitmap> graphBitmap;
-    Context mContext=FaceViewActivity.this;
+    Context mContext = FaceViewActivity.this;
     private ProgressDialog mProgressDialog;
+    private Bitmap bitmapA;
+    private Bitmap bitmapB;
+
+    private String access_token = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_face_view);
         ButterKnife.bind(this);
-
         listener();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+
+    private void init() {
+        csView = new CircleSurfaceView(FaceViewActivity.this, mCamera);
+        fflayout.addView();
 
         // 实例化人脸跟踪视图
         mFaceView = new FaceOverlayView(this);
@@ -155,11 +162,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
             faces[i] = new FaceResultData();
             faces_previous[i] = new FaceResultData();
         }
-
-        if (savedInstanceState != null)
-            cameraId = savedInstanceState.getInt(BUNDLE_CAMERA_ID, 0);
     }
-
 
     //    当当前activity加载完成后调用
     @Override
@@ -167,7 +170,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
         super.onPostCreate(savedInstanceState);
         // Check for the camera permission before accessing the camera.  If the
         // permission is not granted yet, request permission.
-        SurfaceHolder holder = mSurfaceview.getHolder();
+        SurfaceHolder holder = csView.getHolder();
         holder.addCallback(this);
     }
 
@@ -177,6 +180,15 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
             @Override
             public void onClick(View v) {
                 getPictureFromCapture();
+            }
+        });
+        btContrast.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                upIDData(bitmapB);
+                if (mCamera != null) {
+                    mCamera.stopPreview();
+                }
             }
         });
     }
@@ -209,11 +221,11 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
                     Log.d("执行", selectList.get(0).getPath());
                     try {
                         FileInputStream outFile = new FileInputStream(selectList.get(0).getPath());
-//                        Bitmap bitmap =compressImage(BitmapFactory.decodeStream(outFile)) ;
-                        Bitmap bitmap = getimage(selectList.get(0).getPath());
-                        ivImage.setImageBitmap(bitmap);
-//                        bitmap.recycle();
-//                        outFile.close();
+                        bitmapA = IMGUtils.getimage(selectList.get(0).getPath());
+                        ivImageA.setImageBitmap(bitmapA);
+                        outFile.close();
+                        init();
+                        startPreview();
 //                        imageGrpahAdapter.add(bitmap);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -221,145 +233,162 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
             }
         }
     }
-    /**
-     * 自定义规则生成32位编码
-     * @return string
-     */
-    public static String getUUIDByRules(String rules) {
-        String radStr = rules;
-        int rpoint = 0;
-        StringBuffer generateRandStr = new StringBuffer();
-        Random rand = new Random();
-        int length = 32;
-        for(int i=0;i<length;i++) {
-            if(rules!=null){
-                rpoint = rules.length();
-                int randNum = rand.nextInt(rpoint);
-                generateRandStr.append(radStr.substring(randNum,randNum+1));
-            }
-        }
-        return generateRandStr+"";
-    }
+
 
     /**
      * 人脸对比
+     *
      * @param bitmap
      */
     private void upIDData(Bitmap bitmap) {
+        String params = "";
         HttpCheckNetWorkUtil checkNetWord = new HttpCheckNetWorkUtil();
         if (!checkNetWord.checkNotWorkAvailable(mContext)) {
             Toast.makeText(mContext, "请检查网络后再重试。", Toast.LENGTH_SHORT).show();
             return;
         }
-        Map<String,Object> map=new HashMap<>();
-        map.put("app_id",2127336491);
-        map.put("time_stamp",10000);
-        map.put("nonce_str","");
-        map.put("sign","");
-        map.put("image_q",);
-        map.put("image_b",);
-        StringBuffer baseString=new StringBuffer();
-        for (int i=0;i<map.size();i++){
-            baseString.append(map.get("app_id").toString().trim()).append("&").append(URLEncoder.encode(param.getValue().trim(),"UTF-8")).append("&");
+
+        ivImageA.setImageBitmap(bitmapA);
+//        String baseA = Base64Utils.imageToBase64(bitmapA);
+//        String strA=baseA.replaceAll("\r|\n","");
+//
+//        Bitmap bitmap1 = IMGUtils.compressImage(bitmap);
+////        ByteArrayOutputStream baosB=new ByteArrayOutputStream();
+////        bitmap1.compress(Bitmap.CompressFormat.PNG,100,baosB);
+////        byte [] bytesB=baosB.toByteArray();
+//        ivImageB.setImageBitmap(bitmap1);
+//        String baseB = Base64Utils.imageToBase64(bitmap1);
+//        String strB=baseB.replaceAll("\r|\n","");
+//
+//        String nonce_str = IMGUtils.getUUIDByRules("123456789633ABCD");
+//        Map<String, Object> map = new HashMap<>();
+//        map.put("app_id", 2127336491);
+//        map.put("time_stamp", 10000);
+//        map.put("nonce_str", nonce_str);
+////        map.put("sign","");
+//        map.put("image_a", strA);
+//        map.put("image_b", strB);
+//        String sign = IMGUtils.getMD5(IMGUtils.SortUtil(map, "UTF-8", true) + "&app_key=W6jiRDDhr1XGG5mW");
+//        Log.d("执行", IMGUtils.SortUtil(map, "UTF-8", true) + "&app_key=W6jiRDDhr1XGG5mW");
+//        Log.d("执行-Sign", sign);
+//
+//        Map<String, Object> map1 = new HashMap<>();
+//        map1.put("app_id", 2127336491);
+//        map1.put("time_stamp", 10000);
+//        map1.put("nonce_str", nonce_str);
+//        map1.put("sign", sign);
+//        map1.put("image_a", strA);
+//        map1.put("image_b", strB);
+//
+//        String json = JSON.toJSONString(map1);
+//        Log.d("执行-commit", json);
+
+        ByteArrayOutputStream baosA = new ByteArrayOutputStream();
+        bitmapA.compress(Bitmap.CompressFormat.PNG, 100, baosA);
+        String baseA = Base64Util.encode(baosA.toByteArray());
+        try {
+            //释放流
+            baosA.flush();
+            baosA.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
 
+//        Bitmap bitmap1 = IMGUtils.compressImage(bitmap);
+        ByteArrayOutputStream baosB = new ByteArrayOutputStream();
+        bitmapB.compress(Bitmap.CompressFormat.PNG, 100, baosB);
+        String baseB = Base64Util.encode(baosB.toByteArray());
+        try {
+            //释放流
+            baosB.flush();
+            baosB.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
+        List<Requstbean> beanS = new ArrayList<>();
+        Requstbean bean = new Requstbean();
+        bean.setImage(baseA);
+        bean.setImage_type("BASE64");
+        bean.setFace_type("LIVE");
+        bean.setQuality_control("LOW");
+        bean.setLiveness_control("HIGH");
+        beanS.add(bean);
 
+        Requstbean bean1 = new Requstbean();
+        bean1.setImage(baseB);
+        bean1.setImage_type("BASE64");
+        bean1.setFace_type("LIVE");
+        bean1.setQuality_control("LOW");
+        bean1.setLiveness_control("HIGH");
+        beanS.add(bean1);
+        String json = JSON.toJSONString(beanS);
+        Log.d("执行-commit", json);
 
 
         mProgressDialog = new ProgressDialog(mContext);
-        mProgressDialog.setMessage("正在识别信息中...");
+        mProgressDialog.setMessage("正在对比中...");
         mProgressDialog.show();
-        /**
-         * 设置请求头并添加数据
-         * @param content
-         * @return
-         */
-        RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), bitmap);
-        RetrofitHttp.getRetrofit().classification(body).enqueue(new Callback<ResponseBody>() {
+        // 请求url
+        String url = "https://aip.baidubce.com/rest/2.0/face/v3/match";
+        new Thread() {
             @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                if (response.body() != null) {
-                    String str = null;
-                    try {
-                        str = response.body().string();
-//                        Log.d("执行success==", str);
-                        showAlertDialog(mContext, "身份证信息", str, "确认", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        });
-                        mProgressDialog.dismiss();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+            public void run() {
+                super.run();
+                access_token = AuthService.getAuth();
+                Log.d("access_token:", access_token);
+                try {
+                    String result = HttpUtil.post(url, access_token, "application/json", json);
+                    System.out.println(result);
+                    mProgressDialog.dismiss();
+                    showAlertDialog(mContext, "对比结果为：", result, "确认", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
+        }.start();
+//        /**
+//         * 设置请求头并添加数据
+//         * @param content
+//         * @return
+//         */
+//        RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), json);
+//        RetrofitHttp.getRetrofit().contrast(body).enqueue(new Callback<ResponseBody>() {
+//            @Override
+//            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+//                if (response.body() != null) {
+//                    String str = null;
+//                    try {
+//                        str = response.body().string();
+////                        Log.d("执行success==", str);
+//                        showAlertDialog(mContext, "对比结果为：", str, "确认", new DialogInterface.OnClickListener() {
+//                            @Override
+//                            public void onClick(DialogInterface dialog, int which) {
+//                                dialog.dismiss();
+//                            }
+//                        });
+//                        mProgressDialog.dismiss();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//            }
 
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.d("执行error==", "网络请求失败"+call.toString());
-                Toast.makeText(mContext, "请求失败", Toast.LENGTH_SHORT).show();
-                mProgressDialog.dismiss();
-            }
-        });
+//            @Override
+//            public void onFailure(Call<ResponseBody> call, Throwable t) {
+//                Log.d("执行error==", "网络请求失败" + call.toString());
+//                Toast.makeText(mContext, "请求失败", Toast.LENGTH_SHORT).show();
+//                mProgressDialog.dismiss();
+//            }
+//        });
     }
-
-
-
-
-    /**
-     * 压缩
-     * @param image
-     * @return
-     */
-    public Bitmap compressImage(Bitmap image) {
-        ByteArrayOutputStream baos=new ByteArrayOutputStream();
-        image.compress(Bitmap.CompressFormat.PNG,100,baos);
-        int options = 90;
-        while (baos.toByteArray().length / 1024 > 100) { // 循环判断如果压缩后图片是否大于100kb,大于继续压缩
-            baos.reset(); // 重置baos即清空baos
-            image.compress(Bitmap.CompressFormat.JPEG, options, baos);// 这里压缩options%，把压缩后的数据存放到baos中
-            options -= 10;// 每次都减少10
-        }
-        ByteArrayInputStream isBm = new ByteArrayInputStream(baos.toByteArray());// 把压缩后的数据baos存放到ByteArrayInputStream中
-        Bitmap bitmap = BitmapFactory.decodeStream(isBm, null, null);// 把ByteArrayInputStream数据生成图片
-        return bitmap;
-    }
-
-    /**
-     * 图片按比例大小压缩方法
-     * @param srcPath （根据路径获取图片并压缩）
-     * @return
-     */
-    public Bitmap getimage(String srcPath) {
-        BitmapFactory.Options newOpts = new BitmapFactory.Options();
-        // 开始读入图片，此时把options.inJustDecodeBounds 设回true了
-        newOpts.inJustDecodeBounds = true;
-        Bitmap bitmap = BitmapFactory.decodeFile(srcPath, newOpts);// 此时返回bm为空
-        newOpts.inJustDecodeBounds = false;
-        int w = newOpts.outWidth;
-        int h = newOpts.outHeight;
-        // 现在主流手机比较多是800*480分辨率，所以高和宽我们设置为
-        float hh = 800f;// 这里设置高度为800f
-        float ww = 480f;// 这里设置宽度为480f
-        // 缩放比。由于是固定比例缩放，只用高或者宽其中一个数据进行计算即可
-        int be = 1;// be=1表示不缩放
-        if (w > h && w > ww) {// 如果宽度大的话根据宽度固定大小缩放
-            be = (int) (newOpts.outWidth / ww);
-        } else if (w < h && h > hh) {// 如果高度高的话根据宽度固定大小缩放
-            be = (int) (newOpts.outHeight / hh);
-        }
-        if (be <= 0)
-            be = 1;
-        newOpts.inSampleSize = be;// 设置缩放比例
-        // 重新读入图片，注意此时已经把options.inJustDecodeBounds 设回false了
-        bitmap = BitmapFactory.decodeFile(srcPath, newOpts);
-        return compressImage(bitmap);// 压缩好比例大小后再进行质量压缩
-    }
-
 
 //    @Override
 //    public boolean onOptionsItemSelected(MenuItem item) {
@@ -394,7 +423,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     protected void onResume() {
         super.onResume();
         Log.i(TAG, "onResume");
-        startPreview();
+//        startPreview();
     }
 
     @Override
@@ -445,7 +474,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
 
         try {
             //将SurfaceView连接到相机
-            mCamera.setPreviewDisplay(mSurfaceview.getHolder());
+            mCamera.setPreviewDisplay(csView.getHolder());
         } catch (Exception e) {
             Log.e(TAG, "Could not preview the image.", e);
         }
@@ -569,11 +598,11 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     }
 
 
-    // fps detect face (not FPS of camera)
     long start, end;
     int counter = 0;
     double fps;
 
+    //相机实时数据检测
     @Override
     public void onPreviewFrame(byte[] _data, Camera _camera) {
         if (!isThreadWorking) {
@@ -737,6 +766,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
                             if (count == 5) {
                                 faceCroped = ImageUtils.cropFace(faces[i], bitmap, rotate);
                                 if (faceCroped != null) {
+                                    bitmapB = faceCroped;
                                     handler.post(new Runnable() {
                                         public void run() {
                                             imagePreviewAdapter.add(faceCroped);

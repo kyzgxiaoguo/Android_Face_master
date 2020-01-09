@@ -92,16 +92,18 @@ public class Util {
 
     public static Size getOptimalPreviewSize(Activity currentActivity,
                                              List<Size> sizes, double targetRatio) {
-        // Use a very small tolerance because we want an exact match.
+        // 使用很小的公差，因为我们想要一个精确的匹配。
         final double ASPECT_TOLERANCE = 0.001;
         if (sizes == null) return null;
         Size optimalSize = null;
         double minDiff = Double.MAX_VALUE;
-        // Because of bugs of overlay and layout, we sometimes will try to
-        // layout the viewfinder in the portrait orientation and thus get the
-        // wrong size of preview surface. When we change the preview size, the
-        // new overlay will be created before the old one closed, which causes
-        // an exception. For now, just get the screen size.
+
+        //由于覆盖和布局的缺陷，我们有时会尝试
+        //将取景器按纵向布置，从而获得
+        //预览曲面大小错误。当我们更改预览大小时
+        //新覆盖将在旧覆盖关闭之前创建，这将导致
+        //例外。现在，只需要知道屏幕大小。
+
         Point point = getDefaultDisplaySize(currentActivity, new Point());
         int targetHeight = Math.min(point.x, point.y);
         // Try to find an size match aspect ratio and size

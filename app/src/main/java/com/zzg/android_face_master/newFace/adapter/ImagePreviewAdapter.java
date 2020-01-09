@@ -59,7 +59,7 @@ public class ImagePreviewAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
 
         DisplayMetrics metrics = context.getResources().getDisplayMetrics();
-        int size = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 80, metrics);
+        int size = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 100, metrics);
 
         Bitmap bmp = Bitmap.createScaledBitmap(bitmaps.get(i), size, size, false);
         holder.imgPreview.setImageBitmap(bmp);
