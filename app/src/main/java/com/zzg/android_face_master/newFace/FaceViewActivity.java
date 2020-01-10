@@ -14,12 +14,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -28,6 +26,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.luck.picture.lib.PictureSelector;
 import com.luck.picture.lib.config.PictureConfig;
 import com.luck.picture.lib.config.PictureMimeType;
@@ -36,6 +35,7 @@ import com.zzg.android_face_master.R;
 import com.zzg.android_face_master.base.BaseActivity;
 import com.zzg.android_face_master.newFace.adapter.ImagePreviewAdapter;
 import com.zzg.android_face_master.newFace.adapter.ImagePreviewGraphAdapter;
+import com.zzg.android_face_master.newFace.bean.CameraConfig;
 import com.zzg.android_face_master.newFace.bean.FaceResultData;
 import com.zzg.android_face_master.newFace.http.baidu.Base64Util;
 import com.zzg.android_face_master.newFace.http.baidu.HttpUtil;
@@ -46,6 +46,7 @@ import com.zzg.android_face_master.newFace.util.CameraErrorCallback;
 import com.zzg.android_face_master.newFace.util.IMGUtils;
 import com.zzg.android_face_master.newFace.util.ImageUtils;
 import com.zzg.android_face_master.newFace.util.Util;
+import com.zzg.android_face_master.newFace.view.CameraView;
 import com.zzg.android_face_master.newFace.view.CircleSurfaceView;
 import com.zzg.android_face_master.newFace.view.FaceOverlayView;
 
@@ -63,11 +64,9 @@ import butterknife.ButterKnife;
 public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Callback, Camera.PreviewCallback {
 
     @BindView(R.id.mSurfaceview)
-    SurfaceView mSurfaceview;
+    CircleSurfaceView mSurfaceview;
     @BindView(R.id.mRecyclerView)
     RecyclerView mRecyclerView;
-    @BindView(R.id.mRecyclerViewGraph)
-    RecyclerView mRecyclerViewGraph;
     @BindView(R.id.btOpenGraph)
     Button btOpenGraph;
     @BindView(R.id.btContrast)
@@ -76,17 +75,12 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     ImageView ivImageA;
     @BindView(R.id.ivImageB)
     ImageView ivImageB;
-    @BindView(R.id.csView)
-    CircleSurfaceView csView;
-    @BindView(R.id.fflayout)
-    FrameLayout fflayout;
+    @BindView(R.id.btCheck)
+    Button btCheck;
     //    总摄像头数
     private int numberOfCameras;
 
     public static final String TAG = FaceViewActivity.class.getSimpleName();
-
-    private Camera mCamera;
-    private int cameraId = 1;
 
     // 检测旋转和方向
     private int mDisplayRotation;
@@ -137,6 +131,11 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
 
     private String access_token = "";
 
+    private boolean isHide = false;
+    private CameraView mCamera;
+    private int cameraId = 1;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -144,15 +143,19 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
         ButterKnife.bind(this);
         listener();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        init();
     }
 
     private void init() {
-        csView = new CircleSurfaceView(FaceViewActivity.this, mCamera);
-        fflayout.addView();
+//        mSurfaceview = new CircleSurfaceView(FaceViewActivity.this);
 
         // 实例化人脸跟踪视图
         mFaceView = new FaceOverlayView(this);
         addContentView(mFaceView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+//        实例化摄像头
+        mCamera=new CameraView();
+        mCamera.setCamera(mFaceView,FaceViewActivity.this);
 
         handler = new Handler();
 //        设置最大检测数
@@ -162,6 +165,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
             faces[i] = new FaceResultData();
             faces_previous[i] = new FaceResultData();
         }
+        startPreview();
     }
 
     //    当当前activity加载完成后调用
@@ -170,7 +174,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
         super.onPostCreate(savedInstanceState);
         // Check for the camera permission before accessing the camera.  If the
         // permission is not granted yet, request permission.
-        SurfaceHolder holder = csView.getHolder();
+        SurfaceHolder holder = mSurfaceview.getHolder();
         holder.addCallback(this);
     }
 
@@ -189,6 +193,21 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
                 if (mCamera != null) {
                     mCamera.stopPreview();
                 }
+            }
+        });
+        btCheck.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isHide){
+                    isHide=false;
+                    startPreview();
+                }else {
+                    isHide=true;
+                    if (mCamera != null) {
+                        mCamera.stopPreview();
+                    }
+                }
+
             }
         });
     }
@@ -224,8 +243,6 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
                         bitmapA = IMGUtils.getimage(selectList.get(0).getPath());
                         ivImageA.setImageBitmap(bitmapA);
                         outFile.close();
-                        init();
-                        startPreview();
 //                        imageGrpahAdapter.add(bitmap);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -341,14 +358,18 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
                 try {
                     String result = HttpUtil.post(url, access_token, "application/json", json);
                     System.out.println(result);
+                    JSONObject jsonObject=JSON.parseObject(result);
                     mProgressDialog.dismiss();
-                    showAlertDialog(mContext, "对比结果为：", result, "确认", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    });
+                    if (jsonObject.getString("error_code").equals("0")){
 
+                    }else {
+                        showAlertDialog(mContext, "对比结果为：", result, "确认", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -423,7 +444,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     protected void onResume() {
         super.onResume();
         Log.i(TAG, "onResume");
-//        startPreview();
+        mCamera.startPreview();
     }
 
     @Override
@@ -439,7 +460,6 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     protected void onDestroy() {
         super.onDestroy();
         resetData();
-//        graphResetData();
     }
 
 
@@ -453,28 +473,11 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
         resetData();
-//        graphResetData();
-//        获取摄像头总数
-        numberOfCameras = Camera.getNumberOfCameras();
-        //判断开启前置或后置摄像头
-        Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
-        for (int i = 0; i < Camera.getNumberOfCameras(); i++) {
-            Camera.getCameraInfo(i, cameraInfo);
-//            后置
-            if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
-                if (cameraId == 0) cameraId = i;
-            }
-        }
-        mCamera = Camera.open(cameraId);
-        Camera.getCameraInfo(cameraId, cameraInfo);
-//        前置
-        if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            mFaceView.setFront(true);
-        }
+        mCamera.openCamera(CameraConfig.CAMERA_FACING_FRONT);
 
         try {
             //将SurfaceView连接到相机
-            mCamera.setPreviewDisplay(csView.getHolder());
+            mCamera.setPreviewDisplay(mSurfaceview.getHolder());
         } catch (Exception e) {
             Log.e(TAG, "Could not preview the image.", e);
         }
@@ -494,9 +497,9 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
             // Ignore...
         }
 
-        configureCamera(width, height);
-        setDisplayOrientation();
-        setErrorCallback();
+        mCamera.configureCamera(width, height);
+        mCamera.setDisplayOrientation();
+        mCamera.setErrorCallback(mErrorCallback);
 
         // Create media.FaceDetector
         float aspect = (float) previewHeight / (float) previewWidth;
@@ -507,69 +510,10 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
         rgbs = new int[bufflen];
 
         // 实时预览摄像头图像数据
-        startPreview();
+        mCamera.startPreview();
     }
 
-    private void setErrorCallback() {
-        mCamera.setErrorCallback(mErrorCallback);
-    }
 
-    private void setDisplayOrientation() {
-        // Now set the display orientation:
-        mDisplayRotation = Util.getDisplayRotation(FaceViewActivity.this);
-        mDisplayOrientation = Util.getDisplayOrientation(mDisplayRotation, cameraId);
-
-        mCamera.setDisplayOrientation(mDisplayOrientation);
-
-        if (mFaceView != null) {
-            mFaceView.setDisplayOrientation(mDisplayOrientation);
-        }
-    }
-
-    private void configureCamera(int width, int height) {
-        Camera.Parameters parameters = mCamera.getParameters();
-        // Set the PreviewSize and AutoFocus:
-        setOptimalPreviewSize(parameters, width, height);
-        setAutoFocus(parameters);
-        // And set the parameters:
-        mCamera.setParameters(parameters);
-    }
-
-    private void setOptimalPreviewSize(Camera.Parameters cameraParameters, int width, int height) {
-        List<Camera.Size> previewSizes = cameraParameters.getSupportedPreviewSizes();
-        float targetRatio = (float) width / height;
-        Camera.Size previewSize = Util.getOptimalPreviewSize(this, previewSizes, targetRatio);
-        previewWidth = previewSize.width;
-        previewHeight = previewSize.height;
-
-        Log.e(TAG, "previewWidth" + previewWidth);
-        Log.e(TAG, "previewHeight" + previewHeight);
-
-        /**
-         * Calculate size to scale full frame bitmap to smaller bitmap
-         * Detect face in scaled bitmap have high performance than full bitmap.
-         * The smaller image size -> detect faster, but distance to detect face shorter,
-         * so calculate the size follow your purpose
-         */
-        if (previewWidth / 4 > 360) {
-            prevSettingWidth = 360;
-            prevSettingHeight = 270;
-        } else if (previewWidth / 4 > 320) {
-            prevSettingWidth = 320;
-            prevSettingHeight = 240;
-        } else if (previewWidth / 4 > 240) {
-            prevSettingWidth = 240;
-            prevSettingHeight = 160;
-        } else {
-            prevSettingWidth = 160;
-            prevSettingHeight = 120;
-        }
-
-        cameraParameters.setPreviewSize(previewSize.width, previewSize.height);
-
-        mFaceView.setPreviewWidth(previewWidth);
-        mFaceView.setPreviewHeight(previewHeight);
-    }
 
     private void setAutoFocus(Camera.Parameters cameraParameters) {
         List<String> focusModes = cameraParameters.getSupportedFocusModes();
@@ -581,6 +525,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     private void startPreview() {
         if (mCamera != null) {
             isThreadWorking = false;
+            mCamera.startPreview();
             mCamera.startPreview();
             mCamera.setPreviewCallback(this);
             counter = 0;
@@ -838,26 +783,4 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
         }
     }
 
-    /**
-     * 拍照列表
-     */
-    private void graphResetData() {
-        if (imageGrpahAdapter == null) {
-            graphBitmap = new ArrayList<>();
-            //        截图保存并显示
-            RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
-            mRecyclerViewGraph.setLayoutManager(mLayoutManager);
-            mRecyclerViewGraph.setItemAnimator(new DefaultItemAnimator());
-            imageGrpahAdapter = new ImagePreviewGraphAdapter(FaceViewActivity.this, graphBitmap, new ImagePreviewGraphAdapter.ViewHolder.OnItemClickListener() {
-                @Override
-                public void onClick(View v, int position) {
-                    imageGrpahAdapter.setCheck(position);
-                    imageGrpahAdapter.notifyDataSetChanged();
-                }
-            });
-            mRecyclerViewGraph.setAdapter(imageGrpahAdapter);
-        } else {
-            imageGrpahAdapter.clearAll();
-        }
-    }
 }

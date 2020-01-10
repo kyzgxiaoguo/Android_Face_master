@@ -11,4 +11,10 @@ public class CameraConfig {
     public static int CAMERA_FACING_BACK=0;
 //    前置
     public static int CAMERA_FACING_FRONT=1;
+
+    public static int previewWidth;
+    public static int previewHeight;
+
+    public static int prevSettingWidth;
+    public static int prevSettingHeight;
 }

@@ -21,7 +21,7 @@ import java.io.IOException;
  * @Email 18311371235@163.com
  * @Describe
  */
-public class CircleSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
+public class CircleSurfaceView extends SurfaceView{
 
 //    注意：相机预览不必处于横屏模式。从 Android 2.2（API 级别 8）开始，您可使用 setDisplayOrientation() 方法设置预览图像的旋转。
 //    为了在用户重定向手机时改变预览屏幕方向，请在您预览类的 surfaceChanged() 方法中，首先使用 Camera.stopPreview() 停止预览并更改屏幕方向，
@@ -42,20 +42,31 @@ public class CircleSurfaceView extends SurfaceView implements SurfaceHolder.Call
     private Camera mCamera;
     private SurfaceHolder mSurfaceHolder;
 
-
-
-    public CircleSurfaceView(Context context, Camera camera) {
+    public CircleSurfaceView(Context context) {
         super(context);
-        //获取相机和SurfaceHolder实例
-        mCamera=camera;
-        mSurfaceHolder=getHolder();
-        //添加回调事件
-        mSurfaceHolder.addCallback(this);
-//        不推荐使用的设置，但在3.0之前的Android版本上是必需的
-        mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         init(context);
     }
 
+    public CircleSurfaceView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        init(context);
+    }
+
+    public CircleSurfaceView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        init(context);
+    }
+
+    public CircleSurfaceView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        //获取相机和SurfaceHolder实例
+//        mSurfaceHolder=getHolder();
+//        //添加回调事件
+//        mSurfaceHolder.addCallback(this);
+//        不推荐使用的设置，但在3.0之前的Android版本上是必需的
+//        mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        init(context);
+    }
 
     /**
      * 实例化
@@ -65,8 +76,8 @@ public class CircleSurfaceView extends SurfaceView implements SurfaceHolder.Call
         this.mContext=mContext;
         this.mCliPath=new Path();
         this.centerPoint=new Point();
-        mCameraView=new CameraView();
-        mCameraView.checkCameraHardwre(mContext);
+//        mCameraView=new CameraView();
+//        mCameraView.checkCameraHardwre(mContext);
     }
 
 
@@ -103,53 +114,53 @@ public class CircleSurfaceView extends SurfaceView implements SurfaceHolder.Call
         }
         super.draw(canvas);
     }
-    /**
-     * 画布
-     * @param canvas
-     */
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-    }
+//    /**
+//     * 画布
+//     * @param canvas
+//     */
+//    @Override
+//    protected void onDraw(Canvas canvas) {
+//        super.onDraw(canvas);
+//    }
 
 
-    @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-        try {
-//            创建画面并设置相机在哪绘制
-            mCamera.setPreviewDisplay(holder);
-//            开始预览
-            mCamera.startPreview();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Log.d(TAG, "surfaceCreated: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        if (holder.getSurface()==null){
-            return;
-        }
-//        更新前停止预览
-        mCamera.stopPreview();
-//        重新创建画面进行绘制并显示
-        try {
-            mCamera.setPreviewDisplay(holder);
-//            重新预览
-            mCamera.startPreview();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Log.d(TAG, "surfaceChanged: " + e.getMessage());
-        }
-//        如果您想为相机预览设置特定尺寸，请在 surfaceChanged() 方法中进行设置，如上述注释中所述。
-//        设置预览尺寸时，您必须使用来自 getSupportedPreviewSizes() 的值。请勿在 setPreviewSize() 方法中设置任意值。
-    }
-
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-
-    }
+//    @Override
+//    public void surfaceCreated(SurfaceHolder holder) {
+//        try {
+////            创建画面并设置相机在哪绘制
+//            mCamera.setPreviewDisplay(holder);
+////            开始预览
+//            mCamera.startPreview();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            Log.d(TAG, "surfaceCreated: " + e.getMessage());
+//        }
+//    }
+//
+//    @Override
+//    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+//        if (holder.getSurface()==null){
+//            return;
+//        }
+////        更新前停止预览
+//        mCamera.stopPreview();
+////        重新创建画面进行绘制并显示
+//        try {
+//            mCamera.setPreviewDisplay(holder);
+////            重新预览
+//            mCamera.startPreview();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            Log.d(TAG, "surfaceChanged: " + e.getMessage());
+//        }
+////        如果您想为相机预览设置特定尺寸，请在 surfaceChanged() 方法中进行设置，如上述注释中所述。
+////        设置预览尺寸时，您必须使用来自 getSupportedPreviewSizes() 的值。请勿在 setPreviewSize() 方法中设置任意值。
+//    }
+//
+//    @Override
+//    public void surfaceDestroyed(SurfaceHolder holder) {
+//
+//    }
 
 
 }

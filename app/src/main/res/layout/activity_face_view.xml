@@ -6,47 +6,26 @@
     android:layout_height="match_parent"
     android:keepScreenOn="true"
     tools:context=".newFace.FaceViewActivity">
+
     <com.zzg.android_face_master.newFace.view.CircleSurfaceView
-        android:id="@+id/csView"
+        android:id="@+id/mSurfaceview"
         android:layout_width="@dimen/dp_300"
         android:layout_height="@dimen/dp_300"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="@dimen/dp_100"
+        android:layout_marginTop="@dimen/dp_80"
         android:background="#00000000">
     </com.zzg.android_face_master.newFace.view.CircleSurfaceView>
-    <FrameLayout
-        android:id="@+id/fflayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-    </FrameLayout>
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/mRecyclerViewGraph"
-        android:layout_width="60dp"
-        android:layout_height="match_parent"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:layout_margin="10dp"
-        android:visibility="gone"
-        android:scrollbars="vertical" />
-    <SurfaceView
-        android:id="@+id/mSurfaceview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone"/>
     <ImageView
         android:id="@+id/ivImageA"
         android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_alignLeft="@id/mSurfaceview">
+        android:layout_height="80dp">
     </ImageView>
     <ImageView
         android:id="@+id/ivImageB"
         android:layout_width="80dp"
         android:layout_height="80dp"
         android:layout_marginTop="10dp"
-        android:layout_below="@id/ivImageA"
-        android:layout_alignLeft="@id/mSurfaceview">
+        android:layout_below="@id/ivImageA">
     </ImageView>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/mRecyclerView"
@@ -60,18 +39,25 @@
         android:id="@+id/btOpenGraph"
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:layout_alignLeft="@id/mSurfaceview"
-        android:layout_alignBottom="@id/mSurfaceview"
-        android:layout_marginLeft="100dp"
+        android:layout_below="@id/mSurfaceview"
+        android:layout_marginLeft="20dp"
         android:text="拍照">
     </Button>
     <Button
         android:id="@+id/btContrast"
         android:layout_width="60dp"
         android:layout_height="60dp"
-        android:layout_alignRight="@id/mSurfaceview"
-        android:layout_alignBottom="@id/mSurfaceview"
-        android:layout_marginRight="100dp"
+        android:layout_below="@id/mSurfaceview"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="20dp"
         android:text="对比">
+    </Button>
+    <Button
+        android:id="@+id/btCheck"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/mSurfaceview"
+        android:text="检测">
     </Button>
 </RelativeLayout>
