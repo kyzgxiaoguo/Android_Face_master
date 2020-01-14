@@ -17,4 +17,13 @@ public class CameraConfig {
 
     public static int prevSettingWidth;
     public static int prevSettingHeight;
+
+    // 检测旋转和方向
+    public static int mDisplayRotation;
+    public static int mDisplayOrientation;
+
+    public static boolean isThreadWorking = false;
+
+    public static int counter = 0;
+    public static int cameraId;
 }

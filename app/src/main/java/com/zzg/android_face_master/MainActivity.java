@@ -4,11 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.PointF;
-import android.graphics.Rect;
 import android.hardware.Camera;
 import android.media.FaceDetector;
 import android.os.Bundle;
@@ -23,11 +18,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.constraintlayout.solver.widgets.Rectangle;
 
 import com.zzg.android_face_master.base.BaseActivity;
 import com.zzg.android_face_master.newFace.bean.LocalMediaa;
-import com.zzg.android_face_master.newFace.util.IMGUtils;
 import com.zzg.android_face_master.newFace.util.ImageUtils;
 import com.zzg.android_face_master.newFace.util.PictureConfigs;
 import com.zzg.android_face_master.newFace.util.PictureSelectors;
@@ -35,7 +28,6 @@ import com.zzg.android_face_master.presenter.SurfaceViewCallback;
 import com.zzg.android_face_master.view.MainViewCallback;
 import com.zzg.android_face_master.view.SupSurfaceCanvasView;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.BindView;
@@ -98,7 +90,7 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
                 switch (msg.what) {
                     case 1:
                         Toast.makeText(MainActivity.this, "图片中检测到" + realFaceNum + "张人脸", Toast.LENGTH_SHORT).show();
-                        rectanglesView.setRectangles(faces,bitmap);
+                        rectanglesView.setRectangles(faces, bitmap);
                         bitmap.recycle();
                         bitmap1.recycle();
                         break;
@@ -170,7 +162,7 @@ public class MainActivity extends BaseActivity implements MainViewCallback {
                     // 如果裁剪并压缩了，以取压缩路径为准，因为是先裁剪后压缩的
                     Log.d("执行", selectList.get(0).getPath());
                     try {
-                        byte[] b = IMGUtils.readStream(selectList.get(0).getPath());
+                        byte[] b = ImageUtils.readStream(selectList.get(0).getPath());
 
                         reqEntrance(b);
                     } catch (Exception e) {

@@ -79,10 +79,7 @@ public class FaceOverlayView extends View {
         invalidate();
     }
 
-    public void setOrientation(int orientation) {
-        mOrientation = orientation;
-    }
-
+    //当旋转图像预览时不会重新映射坐标系
     public void setDisplayOrientation(int displayOrientation) {
         mDisplayOrientation = displayOrientation;
         invalidate();

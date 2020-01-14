@@ -4,7 +4,10 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -34,18 +37,16 @@ import com.luck.picture.lib.entity.LocalMedia;
 import com.zzg.android_face_master.R;
 import com.zzg.android_face_master.base.BaseActivity;
 import com.zzg.android_face_master.newFace.adapter.ImagePreviewAdapter;
-import com.zzg.android_face_master.newFace.adapter.ImagePreviewGraphAdapter;
 import com.zzg.android_face_master.newFace.bean.CameraConfig;
 import com.zzg.android_face_master.newFace.bean.FaceResultData;
-import com.zzg.android_face_master.newFace.http.baidu.Base64Util;
 import com.zzg.android_face_master.newFace.http.baidu.HttpUtil;
 import com.zzg.android_face_master.newFace.http.resultbean.Requstbean;
 import com.zzg.android_face_master.newFace.http.util.AuthService;
 import com.zzg.android_face_master.newFace.http.util.HttpCheckNetWorkUtil;
+import com.zzg.android_face_master.newFace.util.Base64Utils;
+import com.zzg.android_face_master.newFace.util.BitmapUtils;
 import com.zzg.android_face_master.newFace.util.CameraErrorCallback;
-import com.zzg.android_face_master.newFace.util.IMGUtils;
 import com.zzg.android_face_master.newFace.util.ImageUtils;
-import com.zzg.android_face_master.newFace.util.Util;
 import com.zzg.android_face_master.newFace.view.CameraView;
 import com.zzg.android_face_master.newFace.view.CircleSurfaceView;
 import com.zzg.android_face_master.newFace.view.FaceOverlayView;
@@ -77,17 +78,8 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     ImageView ivImageB;
     @BindView(R.id.btCheck)
     Button btCheck;
-    //    总摄像头数
-    private int numberOfCameras;
 
     public static final String TAG = FaceViewActivity.class.getSimpleName();
-
-    // 检测旋转和方向
-    private int mDisplayRotation;
-    private int mDisplayOrientation;
-
-    private int previewWidth;
-    private int previewHeight;
 
     // 人脸跟踪视图
     private FaceOverlayView mFaceView;
@@ -97,12 +89,8 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
 
     //    人脸个数最大
     private static final int MAX_FACE = 10;
-    private boolean isThreadWorking = false;
     private Handler handler;
     private FaceDetectThread detectThread = null;
-    //保存并绘制图片
-    private int prevSettingWidth;
-    private int prevSettingHeight;
     private FaceDetector mDetector;
 
     private byte[] grayBuff;
@@ -122,8 +110,6 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     private ImagePreviewAdapter imagePreviewAdapter;
     private ArrayList<Bitmap> facesBitmap;
 
-    private ImagePreviewGraphAdapter imageGrpahAdapter;
-    private ArrayList<Bitmap> graphBitmap;
     Context mContext = FaceViewActivity.this;
     private ProgressDialog mProgressDialog;
     private Bitmap bitmapA;
@@ -147,8 +133,6 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     }
 
     private void init() {
-//        mSurfaceview = new CircleSurfaceView(FaceViewActivity.this);
-
         // 实例化人脸跟踪视图
         mFaceView = new FaceOverlayView(this);
         addContentView(mFaceView, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -172,8 +156,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        // Check for the camera permission before accessing the camera.  If the
-        // permission is not granted yet, request permission.
+//        获取holder实例添加holder回调
         SurfaceHolder holder = mSurfaceview.getHolder();
         holder.addCallback(this);
     }
@@ -183,14 +166,14 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
         btOpenGraph.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getPictureFromCapture();
+                mCamera.takePicture(jpeg);
             }
         });
         btContrast.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 upIDData(bitmapB);
-                if (mCamera != null) {
+                if (mCamera.mCamera != null) {
                     mCamera.stopPreview();
                 }
             }
@@ -203,7 +186,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
                     startPreview();
                 }else {
                     isHide=true;
-                    if (mCamera != null) {
+                    if (mCamera.mCamera != null) {
                         mCamera.stopPreview();
                     }
                 }
@@ -213,48 +196,37 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     }
 
     /**
-     * 调用拍照
+     * 获取图片
      */
-    public void getPictureFromCapture() {
-        PictureSelector.create(FaceViewActivity.this)
-                .openCamera(PictureMimeType.ofImage())
-                .imageFormat(PictureMimeType.PNG)// 拍照保存图片格式后缀,默认jpeg
-                .compress(true)
-                .forResult(PictureConfig.CHOOSE_REQUEST);
-    }
-
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK) {
-            switch (requestCode) {
-                case PictureConfig.CHOOSE_REQUEST:
-                    // 图片、视频、音频选择结果回调
-                    List<LocalMedia> selectList = PictureSelector.obtainMultipleResult(data);
-                    // 例如 LocalMedia 里面返回三种path
-                    // 1.media.getPath(); 为原图path
-                    // 2.media.getCutPath();为裁剪后path，需判断media.isCut();是否为true  注意：音视频除外
-                    // 3.media.getCompressPath();为压缩后path，需判断media.isCompressed();是否为true  注意：音视频除外
-                    // 如果裁剪并压缩了，以取压缩路径为准，因为是先裁剪后压缩的
-                    Log.d("执行", selectList.get(0).getPath());
-                    try {
-                        FileInputStream outFile = new FileInputStream(selectList.get(0).getPath());
-                        bitmapA = IMGUtils.getimage(selectList.get(0).getPath());
-                        ivImageA.setImageBitmap(bitmapA);
-                        outFile.close();
-//                        imageGrpahAdapter.add(bitmap);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+    private Camera.PictureCallback jpeg = new Camera.PictureCallback() {
+        @Override
+        public void onPictureTaken(byte[] data, Camera camera) {
+            if (data == null) {
+                return;
             }
-        }
-    }
+            // 拍照回掉回来的 图片数据。
+            Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+            Bitmap bm;
+            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+                Matrix matrix = new Matrix();
+                matrix.setRotate(90, 0.1f, 0.1f);
+                //前置摄像头旋转图片270度。
+                matrix.setRotate(270);
+                bm = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
+            } else {
+                bm = bitmap;
+            }
+//            //图片缩放到341x481大小
+            Bitmap scaleBitmap=Bitmap.createScaledBitmap(bm,mSurfaceview.getWidth(),mSurfaceview.getHeight(),false);
+//                //获取取景框内的图片
+//            bitmap = BitmapUtils.getRectBitmap(mCenterRect, bm, mPoint);
 
+            ivImageA.setImageBitmap(scaleBitmap);
+        }
+    };
 
     /**
      * 人脸对比
-     *
      * @param bitmap
      */
     private void upIDData(Bitmap bitmap) {
@@ -264,12 +236,10 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
             Toast.makeText(mContext, "请检查网络后再重试。", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        ivImageA.setImageBitmap(bitmapA);
 //        String baseA = Base64Utils.imageToBase64(bitmapA);
 //        String strA=baseA.replaceAll("\r|\n","");
 //
-//        Bitmap bitmap1 = IMGUtils.compressImage(bitmap);
+//        Bitmap bitmap1 = ImageUtils.compressImage(bitmap);
 ////        ByteArrayOutputStream baosB=new ByteArrayOutputStream();
 ////        bitmap1.compress(Bitmap.CompressFormat.PNG,100,baosB);
 ////        byte [] bytesB=baosB.toByteArray();
@@ -277,7 +247,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
 //        String baseB = Base64Utils.imageToBase64(bitmap1);
 //        String strB=baseB.replaceAll("\r|\n","");
 //
-//        String nonce_str = IMGUtils.getUUIDByRules("123456789633ABCD");
+//        String nonce_str = ImageUtils.getUUIDByRules("123456789633ABCD");
 //        Map<String, Object> map = new HashMap<>();
 //        map.put("app_id", 2127336491);
 //        map.put("time_stamp", 10000);
@@ -285,8 +255,8 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
 ////        map.put("sign","");
 //        map.put("image_a", strA);
 //        map.put("image_b", strB);
-//        String sign = IMGUtils.getMD5(IMGUtils.SortUtil(map, "UTF-8", true) + "&app_key=W6jiRDDhr1XGG5mW");
-//        Log.d("执行", IMGUtils.SortUtil(map, "UTF-8", true) + "&app_key=W6jiRDDhr1XGG5mW");
+//        String sign = ImageUtils.getMD5(ImageUtils.SortUtil(map, "UTF-8", true) + "&app_key=W6jiRDDhr1XGG5mW");
+//        Log.d("执行", ImageUtils.SortUtil(map, "UTF-8", true) + "&app_key=W6jiRDDhr1XGG5mW");
 //        Log.d("执行-Sign", sign);
 //
 //        Map<String, Object> map1 = new HashMap<>();
@@ -302,7 +272,7 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
 
         ByteArrayOutputStream baosA = new ByteArrayOutputStream();
         bitmapA.compress(Bitmap.CompressFormat.PNG, 100, baosA);
-        String baseA = Base64Util.encode(baosA.toByteArray());
+        String baseA = Base64Utils.encode(baosA.toByteArray());
         try {
             //释放流
             baosA.flush();
@@ -312,10 +282,10 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
         }
 
 
-//        Bitmap bitmap1 = IMGUtils.compressImage(bitmap);
+//        Bitmap bitmap1 = ImageUtils.compressImage(bitmap);
         ByteArrayOutputStream baosB = new ByteArrayOutputStream();
         bitmapB.compress(Bitmap.CompressFormat.PNG, 100, baosB);
-        String baseB = Base64Util.encode(baosB.toByteArray());
+        String baseB = Base64Utils.encode(baosB.toByteArray());
         try {
             //释放流
             baosB.flush();
@@ -341,7 +311,6 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
         bean1.setLiveness_control("HIGH");
         beanS.add(bean1);
         String json = JSON.toJSONString(beanS);
-        Log.d("执行-commit", json);
 
 
         mProgressDialog = new ProgressDialog(mContext);
@@ -444,14 +413,14 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     protected void onResume() {
         super.onResume();
         Log.i(TAG, "onResume");
-        mCamera.startPreview();
+        startPreview();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         Log.i(TAG, "onPause");
-        if (mCamera != null) {
+        if (mCamera.mCamera != null) {
             mCamera.stopPreview();
         }
     }
@@ -486,49 +455,42 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     //    当旋转或尺寸发生变化时调用
     @Override
     public void surfaceChanged(SurfaceHolder surfaceHolder, int format, int width, int height) {
-        // We have no surface, return immediately:
+        // 判断如果没有画面直接返回
         if (surfaceHolder.getSurface() == null) {
             return;
         }
-        // Try to stop the current preview:
+        // 停止预览
         try {
             mCamera.stopPreview();
         } catch (Exception e) {
-            // Ignore...
+            Log.d(TAG,e.getMessage());
         }
-
+//        设置图片预览位置、自动对焦
         mCamera.configureCamera(width, height);
         mCamera.setDisplayOrientation();
         mCamera.setErrorCallback(mErrorCallback);
 
-        // Create media.FaceDetector
-        float aspect = (float) previewHeight / (float) previewWidth;
-        mDetector = new FaceDetector(prevSettingWidth, (int) (prevSettingWidth * aspect), MAX_FACE);
+        // 创建人脸识别
+        float aspect = (float) CameraConfig.previewHeight / (float) CameraConfig.previewWidth;
+        mDetector = new FaceDetector(CameraConfig.prevSettingWidth, (int) (CameraConfig.prevSettingWidth * aspect), MAX_FACE);
 
-        bufflen = previewWidth * previewHeight;
+        bufflen = CameraConfig.previewWidth * CameraConfig.previewHeight;
         grayBuff = new byte[bufflen];
         rgbs = new int[bufflen];
 
         // 实时预览摄像头图像数据
-        mCamera.startPreview();
+        startPreview();
     }
 
 
-
-    private void setAutoFocus(Camera.Parameters cameraParameters) {
-        List<String> focusModes = cameraParameters.getSupportedFocusModes();
-        if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE))
-            cameraParameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-    }
 
     //    开始预览-显示实时摄像头图像
     private void startPreview() {
-        if (mCamera != null) {
-            isThreadWorking = false;
-            mCamera.startPreview();
+        if (mCamera.mCamera != null) {
+            CameraConfig.isThreadWorking = false;
             mCamera.startPreview();
             mCamera.setPreviewCallback(this);
-            counter = 0;
+            CameraConfig.counter = 0;
         }
     }
 
@@ -536,25 +498,25 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
     //    当关闭隐藏时调用
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
-        mCamera.setPreviewCallbackWithBuffer(null);
+        mCamera.setPreviewCallbackWithBuffer();
         mCamera.setErrorCallback(null);
         mCamera.release();
-        mCamera = null;
+        mCamera.mCamera = null;
     }
 
 
     long start, end;
-    int counter = 0;
+
     double fps;
 
     //相机实时数据检测
     @Override
     public void onPreviewFrame(byte[] _data, Camera _camera) {
-        if (!isThreadWorking) {
-            if (counter == 0)
+        if (!CameraConfig.isThreadWorking) {
+            if (CameraConfig.counter == 0)
                 start = System.currentTimeMillis();
 
-            isThreadWorking = true;
+            CameraConfig.isThreadWorking = true;
             waitForFdetThreadComplete();
             detectThread = new FaceDetectThread(handler, this);
             detectThread.setData(_data);
@@ -598,49 +560,49 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
             this.data = data;
         }
 
+        @Override
         public void run() {
-//            Log.i("FaceDetectThread", "running");
-
-            float aspect = (float) previewHeight / (float) previewWidth;
-            int w = prevSettingWidth;
-            int h = (int) (prevSettingWidth * aspect);
+            float aspect = (float) CameraConfig.previewHeight / (float) CameraConfig.previewWidth;
+            int w = CameraConfig.prevSettingWidth;
+            int h = (int) (CameraConfig.prevSettingWidth * aspect);
 
             ByteBuffer bbuffer = ByteBuffer.wrap(data);
             bbuffer.get(grayBuff, 0, bufflen);
 
-            gray8toRGB32(grayBuff, previewWidth, previewHeight, rgbs);
-            Bitmap bitmap = Bitmap.createBitmap(rgbs, previewWidth, previewHeight, Bitmap.Config.RGB_565);
+            gray8toRGB32(grayBuff, CameraConfig.previewWidth, CameraConfig.previewHeight, rgbs);
+            Bitmap bitmap = Bitmap.createBitmap(rgbs, CameraConfig.previewWidth, CameraConfig.previewHeight, Bitmap.Config.RGB_565);
 
             Bitmap bmp = Bitmap.createScaledBitmap(bitmap, w, h, false);
 
-            float xScale = (float) previewWidth / (float) prevSettingWidth;
-            float yScale = (float) previewHeight / (float) h;
+            float xScale = (float) CameraConfig.previewWidth / (float) CameraConfig.prevSettingWidth;
+            float yScale = (float) CameraConfig.previewHeight / (float) h;
 
             Camera.CameraInfo info = new Camera.CameraInfo();
             Camera.getCameraInfo(cameraId, info);
-            int rotate = mDisplayOrientation;
-            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT && mDisplayRotation % 180 == 0) {
+            int rotate = CameraConfig.mDisplayOrientation;
+            if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT && CameraConfig.mDisplayRotation % 180 == 0) {
                 if (rotate + 180 > 360) {
                     rotate = rotate - 180;
                 } else
                     rotate = rotate + 180;
             }
-
             switch (rotate) {
                 case 90:
                     bmp = ImageUtils.rotate(bmp, 90);
-                    xScale = (float) previewHeight / bmp.getWidth();
-                    yScale = (float) previewWidth / bmp.getHeight();
+                    xScale = (float) CameraConfig.previewHeight / bmp.getWidth();
+                    yScale = (float) CameraConfig.previewWidth / bmp.getHeight();
                     break;
                 case 180:
                     bmp = ImageUtils.rotate(bmp, 180);
                     break;
                 case 270:
                     bmp = ImageUtils.rotate(bmp, 270);
-                    xScale = (float) previewHeight / (float) h;
-                    yScale = (float) previewWidth / (float) prevSettingWidth;
+                    xScale = (float) CameraConfig.previewHeight / (float) h;
+                    yScale = (float) CameraConfig.previewWidth / (float) CameraConfig.prevSettingWidth;
                     break;
             }
+
+
 
             mDetector = new FaceDetector(bmp.getWidth(), bmp.getHeight(), MAX_FACE);
 
@@ -696,10 +658,10 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
 
                         faces_previous[i].set(faces[i].getId(), faces[i].getMidEye(), faces[i].eyesDistance(), faces[i].getConfidence(), faces[i].getPose(), faces[i].getTime());
 
-                        //
-                        // if focus in a face 5 frame -> take picture face display in mRecyclerView
-                        // because of some first frame have low quality
-                        //
+                        /**
+                         * 如果聚焦在面5帧->在mRecyclerView中拍摄面显示
+                         * 因为有些第一帧的质量不好
+                         */
                         if (facesCount.get(idFace) == null) {
                             facesCount.put(idFace, 0);
                         } else {
@@ -725,23 +687,24 @@ public class FaceViewActivity extends BaseActivity implements SurfaceHolder.Call
             }
 
             handler.post(new Runnable() {
+                @Override
                 public void run() {
                     //send face to FaceView to draw rect
                     mFaceView.setFaces(faces);
 
                     //Calculate FPS (Detect Frame per Second)
                     end = System.currentTimeMillis();
-                    counter++;
+                    CameraConfig.counter++;
                     double time = (double) (end - start) / 1000;
                     if (time != 0)
-                        fps = counter / time;
+                        fps = CameraConfig.counter / time;
 
                     mFaceView.setFPS(fps);
 
-                    if (counter == (Integer.MAX_VALUE - 1000))
-                        counter = 0;
+                    if (CameraConfig.counter == (Integer.MAX_VALUE - 1000))
+                        CameraConfig.counter = 0;
 
-                    isThreadWorking = false;
+                    CameraConfig.isThreadWorking = false;
                 }
             });
         }
