@@ -5,16 +5,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:keepScreenOn="true"
-    tools:context=".newFace.FaceViewActivity">
+    tools:context=".FaceViewActivity">
 
-    <com.zzg.android_face_master.newFace.view.CircleSurfaceView
+    <com.zzg.android_face_master.view.CircleSurfaceView
         android:id="@+id/mSurfaceview"
         android:layout_width="@dimen/dp_300"
         android:layout_height="@dimen/dp_300"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="@dimen/dp_80"
         android:background="#00000000">
-    </com.zzg.android_face_master.newFace.view.CircleSurfaceView>
+    </com.zzg.android_face_master.view.CircleSurfaceView>
     <ImageView
         android:id="@+id/ivImageA"
         android:layout_width="80dp"
@@ -35,29 +35,33 @@
         android:layout_alignParentRight="true"
         android:layout_margin="10dp"
         android:scrollbars="vertical" />
-    <Button
-        android:id="@+id/btOpenGraph"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_below="@id/mSurfaceview"
-        android:layout_marginLeft="20dp"
-        android:text="拍照">
-    </Button>
-    <Button
-        android:id="@+id/btContrast"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_below="@id/mSurfaceview"
-        android:layout_alignParentRight="true"
-        android:layout_marginRight="20dp"
-        android:text="对比">
-    </Button>
-    <Button
-        android:id="@+id/btCheck"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@id/mSurfaceview"
-        android:text="检测">
-    </Button>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_alignParentBottom="true">
+        <Button
+            android:id="@+id/btOpenGraph"
+            android:layout_width="120dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:text="拍照">
+        </Button>
+        <Button
+            android:id="@+id/btCheck"
+            android:layout_width="120dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:text="人脸检测追踪（开始/暂停）">
+        </Button>
+        <Button
+            android:id="@+id/btContrast"
+            android:layout_width="120dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:text="人脸对比">
+        </Button>
+
+    </LinearLayout>
 </RelativeLayout>
